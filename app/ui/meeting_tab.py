@@ -362,11 +362,12 @@ class MeetingTab(ctk.CTkFrame):
         self.refresh_state()
 
     def _on_reset(self) -> None:
-        """Reset the meeting."""
+        """Reset the meeting and clear Jira panels."""
         self._stop_blink()
         self._cancel_tick()
         self._timer.reset()
         self.refresh_state()
+        self._load_jira_for_current()
 
     def _on_save(self) -> None:
         """Save the session."""
