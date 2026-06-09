@@ -16,6 +16,7 @@ def _load_env_from_zshrc() -> None:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         for line in result.stdout.splitlines():
             if line.startswith(("ATLASSIAN_EMAIL=", "ATLASSIAN_API_TOKEN=")):

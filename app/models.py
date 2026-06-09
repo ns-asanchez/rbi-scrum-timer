@@ -23,6 +23,8 @@ FOOD_ICONS = [
 
 
 class MeetingState(Enum):
+    """Possible states of the meeting timer."""
+
     IDLE = auto()
     RUNNING = auto()
     PAUSED = auto()
@@ -31,6 +33,8 @@ class MeetingState(Enum):
 
 @dataclass
 class Participant:
+    """A person who can attend meetings, optionally linked to a Jira account."""
+
     id: int
     name: str
     is_jefote: bool
@@ -41,6 +45,8 @@ class Participant:
 
 @dataclass
 class MeetingParticipant:
+    """A participant's runtime state within an active meeting."""
+
     participant: Participant
     allocated_seconds: int = 0
     actual_seconds: int = 0
@@ -49,6 +55,8 @@ class MeetingParticipant:
 
 @dataclass
 class MeetingConfig:
+    """Persisted meeting configuration (duration, name, bell settings)."""
+
     duration_minutes: int = 15
     meeting_name: str = "Polaris Rising [Ab+B]"
     bell_enabled: bool = True
@@ -57,6 +65,8 @@ class MeetingConfig:
 
 @dataclass
 class SessionRecord:
+    """A saved meeting session with per-participant time data."""
+
     id: int
     date: str
     planned_duration: int

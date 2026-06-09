@@ -131,20 +131,24 @@ class MeetingTimer:
 
     @property
     def current(self) -> Optional[MeetingParticipant]:
+        """Return the currently speaking participant, or None if not started."""
         if 0 <= self._current_index < len(self._queue):
             return self._queue[self._current_index]
         return None
 
     @property
     def queue(self) -> list[MeetingParticipant]:
+        """Return the full ordered participant queue."""
         return self._queue
 
     @property
     def non_jefotes(self) -> list[MeetingParticipant]:
+        """Return queue entries for non-manager participants."""
         return [mp for mp in self._queue if not mp.participant.is_jefote]
 
     @property
     def jefotes(self) -> list[MeetingParticipant]:
+        """Return queue entries for manager participants."""
         return [mp for mp in self._queue if mp.participant.is_jefote]
 
     def has_next(self) -> bool:
@@ -153,6 +157,7 @@ class MeetingTimer:
 
     @property
     def planned_seconds(self) -> int:
+        """Total planned meeting duration in seconds."""
         return self.config.duration_minutes * 60
 
     # ── Internals ─────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ from app import db
 from app.bell import play_bell
 from app.meeting import MeetingTimer
 from app.models import MeetingConfig, MeetingState
-from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
+from app.ui.dialogs import showinfo, showwarning
 from app.ui.help_tab import HelpTab
 from app.ui.meeting_tab import MeetingTab
 from app.ui.participants_tab import ParticipantsTab
@@ -18,6 +18,8 @@ from app.ui.stats_tab import StatsTab
 
 
 class AppWindow(ctk.CTk):
+    """Root application window — orchestrates 5 tabs and meeting lifecycle."""
+
     def __init__(self):
         super().__init__()
         self.title("RBI Scrum Timer")

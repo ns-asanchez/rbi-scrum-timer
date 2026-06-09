@@ -1,5 +1,7 @@
 """Bell sound generator — stdlib only, macOS/Linux/Windows portable."""
 
+# pylint: disable=consider-using-with,import-outside-toplevel
+
 import array
 import math
 import os

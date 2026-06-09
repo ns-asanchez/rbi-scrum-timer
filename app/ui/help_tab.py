@@ -1,5 +1,7 @@
 """Help tab — scrollable reference guide for all app features."""
 
+# pylint: disable=line-too-long
+
 import customtkinter as ctk
 
 from app.ui.scroll_fix import apply as apply_scroll
@@ -155,6 +157,8 @@ HELP_CONTENT = [
 
 
 class HelpTab(ctk.CTkFrame):
+    """Scrollable help tab — feature reference for all tabs."""
+
     def __init__(self, parent):
         super().__init__(parent, fg_color="transparent")
         self._build_ui()

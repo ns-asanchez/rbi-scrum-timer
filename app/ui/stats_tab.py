@@ -8,7 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 from app import db
-from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
+from app.ui.dialogs import askyesno
 
 
 def _secs_to_mmss(seconds: float) -> str:
@@ -155,7 +155,9 @@ class StatsTab(ctk.CTkFrame):
         ax.spines[:].set_color("#444")
         ax.grid(axis="y", color="#333", linestyle="--", linewidth=0.8)
 
-        max_secs = max(max(planned, default=0), max(actual, default=0))
+        max_secs = max(  # pylint: disable=nested-min-max
+            max(planned, default=0), max(actual, default=0)
+        )
         self._mmss_yticks(ax, max_secs)
 
         # Tooltips — disconnect previous cursor first
@@ -275,7 +277,9 @@ class StatsTab(ctk.CTkFrame):
         ax.spines[:].set_color("#444")
         ax.grid(axis="y", color="#333", linestyle="--", linewidth=0.8)
 
-        max_secs = max(max(allocated, default=0), max(actual, default=0))
+        max_secs = max(  # pylint: disable=nested-min-max
+            max(allocated, default=0), max(actual, default=0)
+        )
         self._mmss_yticks(ax, max_secs)
 
         # Tooltips on bars — disconnect previous cursor first

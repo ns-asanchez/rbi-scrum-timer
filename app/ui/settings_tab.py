@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 
 from app import db
 from app.jira_client import fetch_board_members, test_credentials
-from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
+from app.ui.dialogs import showinfo
 from app.ui.scroll_fix import apply as apply_scroll
 
 TOKENS = [
@@ -424,7 +424,6 @@ class SettingsTab(ctk.CTkFrame):
 
         # Fixed column widths — shared by header and every row
         COL_AVATAR = 44
-        COL_NAME = 0  # expands
         COL_ADD = 52
         COL_JEFAZO = 72
         COL_STATUS = 70
@@ -516,14 +515,7 @@ class SettingsTab(ctk.CTkFrame):
 
         # col 2 — Add checkbox (or spacer)
         if not in_db:
-
-            def _on_toggle(av=add_var, jcb_ref=[None]):
-                if jcb_ref[0]:
-                    jcb_ref[0].configure(state="normal" if av.get() else "disabled")
-
-            add_cb = ctk.CTkCheckBox(
-                row, text="", variable=add_var, width=COL_ADD, command=_on_toggle
-            )
+            add_cb = ctk.CTkCheckBox(row, text="", variable=add_var, width=COL_ADD)
             add_cb.grid(row=0, column=2, padx=2)
         else:
             ctk.CTkLabel(row, text="", width=COL_ADD).grid(row=0, column=2, padx=2)

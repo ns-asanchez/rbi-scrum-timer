@@ -496,8 +496,7 @@ class MeetingTab(ctk.CTkFrame):
             else 0
         )
         if (
-            remaining <= 10
-            and remaining >= 0
+            0 <= remaining <= 10  # chained comparison
             and self._timer.state == MeetingState.RUNNING
         ):
             self._start_blink()
@@ -773,7 +772,9 @@ class MeetingTab(ctk.CTkFrame):
                 text_color=("#1f6aa5", "#4a9ede"),
                 hover=False,
                 anchor="w",
-                command=lambda url=issue["url"]: subprocess.Popen(["open", url]),
+                command=lambda url=issue["url"]: subprocess.run(
+                    ["open", url], check=False
+                ),
             )
             key_btn.pack(side="left", padx=(0, 8))
 
@@ -841,7 +842,9 @@ class MeetingTab(ctk.CTkFrame):
                     text_color=("gray50", "gray50"),
                     hover=False,
                     anchor="w",
-                    command=lambda url=issue["url"]: subprocess.Popen(["open", url]),
+                    command=lambda url=issue["url"]: subprocess.run(
+                        ["open", url], check=False
+                    ),
                 ).pack(side="left", padx=(0, 8))
 
                 # Status badge (right side, same order as open tasks)

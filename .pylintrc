@@ -1,0 +1,32 @@
+[MASTER]
+# Suppress false positives for this project
+
+[MESSAGES CONTROL]
+disable =
+    # CTk widgets are always created in _build_* methods, not __init__
+    W0201,
+    # ctk.CTkFrame inherits deeply — not our code
+    R0901,
+    # CTk internal APIs: _parent_canvas, _image have no public equivalents
+    W0212,
+    # PIL.LANCZOS exists in Pillow 10+ but pylint doesn't know
+    E1101,
+    # winsound is a conditional Windows import inside try/except
+    E0401,
+    # UI builder methods are intentionally long
+    R0902, R0913, R0914, R0915, R0917,
+    # Broad exception is intentional in async UI/network callbacks
+    W0718,
+    # UPPER_CASE constants in function scope (STATUS_COLORS, GREEN, etc.)
+    C0103,
+    # Duplicate code between _make_avatar helpers — acceptable
+    R0801,
+    # CTk forces long inheritance chains in UI tabs
+    C0115
+
+[FORMAT]
+max-line-length = 140
+
+[DESIGN]
+max-attributes = 30
+max-args = 10

@@ -41,6 +41,8 @@ class ParticipantsTab(ctk.CTkFrame):
 
         self._all_participants = []
         self._attendees = []
+        self._selected_all: int | None = None
+        self._selected_mtg: int | None = None
 
         self._build_ui()
         self.load_data()

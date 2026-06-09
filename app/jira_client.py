@@ -14,6 +14,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Callable
+from urllib.parse import parse_qs, urlparse
 
 JIRA_BASE = "https://netskope.atlassian.net"
 AVATAR_CACHE = Path(__file__).parent.parent / "data" / "avatars"
@@ -66,8 +67,6 @@ def _request(path: str, params: dict | None = None, body: dict | None = None) ->
 
 def _strip_order_by(jql: str) -> str:
     """Remove ORDER BY clause from JQL so it can be safely embedded in a compound query."""
-    import re
-
     return re.sub(r"\s+ORDER\s+BY\s+.+$", "", jql, flags=re.IGNORECASE).strip()
 
 
@@ -158,8 +157,6 @@ def fetch_board_members(
             base_jql = _strip_order_by(fdata.get("jql", ""))
 
             # Extract label from board URL (e.g. ?label=polaris-squad)
-            from urllib.parse import parse_qs, urlparse
-
             qs = parse_qs(urlparse(board_url).query)
             label = qs.get("label", [None])[0]
             label_clause = f' AND labels = "{label}"' if label else ""
