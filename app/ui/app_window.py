@@ -166,7 +166,7 @@ class AppWindow(ctk.CTk):
         self.destroy()
 
     def _save_session(self) -> None:
-        """Save the completed meeting to the database."""
+        """Save the completed meeting to the database — only once per session."""
         if self._timer.state != MeetingState.FINISHED:
             return
         today = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -174,5 +174,7 @@ class AppWindow(ctk.CTk):
         actual = self._timer.meeting_elapsed
         payload = self._timer.build_session_payload()
         db.save_session(today, planned, actual, payload)
+        # Disable Save button to prevent duplicate saves
+        self._meeting_tab._btn_save.configure(state="disabled")
         showinfo(self, "Saved", f"Session saved for {today}.")
         self._stats_tab.load_data()
