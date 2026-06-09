@@ -2,11 +2,13 @@
 
 Desktop standup timer for the RBI team at Netskope. Manages per-participant speaking time, integrates with Jira to show active sprint tasks, and persists session history with charts.
 
+> **⚠️ macOS only** — see [Platform limitations](#platform-limitations) for details and what would need to change to support Windows/Linux.
+
 ---
 
 ## Requirements
 
-- **macOS** (tested on macOS 13+)
+- **macOS 13+** (Ventura or later — required, see limitations below)
 - **Python 3.10+** (3.14 recommended — the project ships a `.venv` created with the system Python)
 - **Atlassian account** with API token (for Jira integration — optional at runtime)
 
@@ -156,6 +158,138 @@ rbi-scrum-time/
 │   └── avatars/             # Cached Jira profile pictures
 └── assets/
     └── AppIcon.icns         # macOS app icon
+```
+
+---
+
+## Building a macOS App (.app bundle)
+
+You can package the project as a standalone macOS application (no Python installation required for the end user) using **py2app**.
+
+### 1. Install py2app
+
+```bash
+source .venv/bin/activate
+pip install py2app
+```
+
+### 2. Create setup.py
+
+Create a file `setup.py` in the project root:
+
+```python
+from setuptools import setup
+
+APP = ["main.py"]
+DATA_FILES = [("assets", ["assets/AppIcon.icns"])]
+OPTIONS = {
+    "argv_emulation": False,
+    "iconfile": "assets/AppIcon.icns",
+    "plist": {
+        "CFBundleName": "RBI Scrum Timer",
+        "CFBundleDisplayName": "RBI Scrum Timer",
+        "CFBundleVersion": "1.0.0",
+        "CFBundleShortVersionString": "1.0",
+        "NSHighResolutionCapable": True,
+    },
+    "packages": ["customtkinter", "matplotlib", "PIL", "mplcursors"],
+    "includes": ["tkinter"],
+}
+
+setup(
+    app=APP,
+    data_files=DATA_FILES,
+    options={"py2app": OPTIONS},
+    setup_requires=["py2app"],
+)
+```
+
+### 3. Build
+
+```bash
+source .venv/bin/activate
+python setup.py py2app
+```
+
+The `.app` bundle will be created in `dist/RBI Scrum Timer.app`.
+
+### 4. Run
+
+```bash
+open "dist/RBI Scrum Timer.app"
+```
+
+Or drag it to `/Applications` for system-wide access.
+
+> **Note:** The `data/` folder (DB + avatars) is created relative to where the app is run from. On first launch the database will be initialized automatically.
+
+---
+
+## Platform limitations
+
+**This application currently runs on macOS only.** Three components would need to be updated to support Windows or Linux:
+
+### 1. Bell sound — `app/bell.py`
+
+Currently uses `afplay` (macOS CLI audio player):
+
+```python
+subprocess.run(["afplay", wav_file], ...)  # macOS only
+```
+
+**Fix:** detect the OS and use the appropriate backend:
+- **Windows:** `winsound.PlaySound()` (stdlib)
+- **Linux:** `aplay` or `paplay` via subprocess
+
+```python
+import platform, subprocess
+system = platform.system()
+if system == "Darwin":
+    subprocess.run(["afplay", wav_file], check=False)
+elif system == "Windows":
+    import winsound
+    winsound.PlaySound(wav_file, winsound.SND_FILENAME)
+else:  # Linux
+    subprocess.run(["aplay", wav_file], check=False)
+```
+
+### 2. Open URLs — `app/ui/meeting_tab.py`
+
+Currently uses the macOS `open` command to open Jira ticket URLs:
+
+```python
+subprocess.run(["open", url], check=False)  # macOS only
+```
+
+**Fix:** use Python's `webbrowser` module (works on all platforms):
+
+```python
+import webbrowser
+webbrowser.open(url)  # cross-platform
+```
+
+### 3. Trackpad scroll — `app/ui/scroll_fix.py`
+
+Currently handles macOS Tk9 `<TouchpadScroll>` events with unsigned 16-bit deltas specific to the macOS implementation:
+
+```python
+widget.bind("<TouchpadScroll>", _scroll, add="+")  # macOS Tk9 only
+```
+
+**Fix:** add OS-specific delta handling:
+- **Windows:** `<MouseWheel>` with `event.delta / 120` units
+- **Linux:** `<Button-4>` (scroll up) and `<Button-5>` (scroll down)
+
+```python
+import platform
+if platform.system() == "Darwin":
+    widget.bind("<TouchpadScroll>", _scroll_mac, add="+")
+    widget.bind("<MouseWheel>", _scroll_mac, add="+")
+elif platform.system() == "Windows":
+    widget.bind("<MouseWheel>", _scroll_win, add="+")
+else:  # Linux
+    widget.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"), add="+")
+    widget.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"), add="+")
 ```
 
 ---
