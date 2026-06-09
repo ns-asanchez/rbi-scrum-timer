@@ -4,39 +4,44 @@ Credentials priority:
 1. ATLASSIAN_EMAIL + ATLASSIAN_API_TOKEN env vars (set via ~/.zshrc or Settings tab)
 2. If not set → returns an error message telling the user to set them in Settings.
 """
+
+import base64
+import json
 import os
 import re
 import threading
-import urllib.request
 import urllib.parse
-import json
-import base64
+import urllib.request
 from pathlib import Path
 from typing import Callable
 
-JIRA_BASE    = "https://netskope.atlassian.net"
+JIRA_BASE = "https://netskope.atlassian.net"
 AVATAR_CACHE = Path(__file__).parent.parent / "data" / "avatars"
 
 BOARD_FILTER = (
     'project in (Engineering, RBI, "Quality Engineering", "Core QE") '
-    'AND labels in (rbi-qe, rbi-qe-core, rbi-infra, rbi-provider-linux, rbi-core, '
-    'rbi-devops, forge-squad, urp-ai-automation, serenity-squad, polaris-squad)'
+    "AND labels in (rbi-qe, rbi-qe-core, rbi-infra, rbi-provider-linux, rbi-core, "
+    "rbi-devops, forge-squad, urp-ai-automation, serenity-squad, polaris-squad)"
 )
 
 
 # ── Credentials ───────────────────────────────────────────────────────────────
 
+
 def _get_credentials() -> tuple[str, str] | None:
+    """Return (email, token) if both are set, else None."""
     email = os.environ.get("ATLASSIAN_EMAIL", "").strip()
     token = os.environ.get("ATLASSIAN_API_TOKEN", "").strip()
     return (email, token) if email and token else None
 
 
 def _build_auth(email: str, token: str) -> str:
+    """Build HTTP Basic auth header value."""
     return "Basic " + base64.b64encode(f"{email}:{token}".encode()).decode()
 
 
 def _request(path: str, params: dict | None = None, body: dict | None = None) -> dict:
+    """Make an authenticated HTTP request to Jira. Raises RuntimeError if credentials missing."""
     creds = _get_credentials()
     if not creds:
         raise RuntimeError(
@@ -52,8 +57,9 @@ def _request(path: str, params: dict | None = None, body: dict | None = None) ->
     if body:
         encoded_body = json.dumps(body).encode()
         headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=encoded_body, headers=headers,
-                                  method="POST" if body else "GET")
+    req = urllib.request.Request(
+        url, data=encoded_body, headers=headers, method="POST" if body else "GET"
+    )
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read())
 
@@ -61,21 +67,29 @@ def _request(path: str, params: dict | None = None, body: dict | None = None) ->
 def _strip_order_by(jql: str) -> str:
     """Remove ORDER BY clause from JQL so it can be safely embedded in a compound query."""
     import re
-    return re.sub(r'\s+ORDER\s+BY\s+.+$', '', jql, flags=re.IGNORECASE).strip()
+
+    return re.sub(r"\s+ORDER\s+BY\s+.+$", "", jql, flags=re.IGNORECASE).strip()
 
 
 # ── Credential test ───────────────────────────────────────────────────────────
 
+
 def test_credentials(
-    email: str, token: str,
+    email: str,
+    token: str,
     on_ok: Callable[[], None],
     on_error: Callable[[str], None],
 ) -> None:
+    """Test Jira credentials asynchronously by calling /myself endpoint."""
+
     def _run():
         try:
             req = urllib.request.Request(
                 f"{JIRA_BASE}/rest/api/3/myself",
-                headers={"Authorization": _build_auth(email, token), "Accept": "application/json"},
+                headers={
+                    "Authorization": _build_auth(email, token),
+                    "Accept": "application/json",
+                },
             )
             with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read())
@@ -85,21 +99,24 @@ def test_credentials(
                 on_error("Unexpected response — check credentials")
         except Exception as e:
             on_error(str(e))
+
     threading.Thread(target=_run, daemon=True).start()
 
 
 # ── Board URL parsing ─────────────────────────────────────────────────────────
 
+
 def parse_board_id(board_url: str) -> int | None:
     """Extract board ID from a URL like .../boards/14955?..."""
-    m = re.search(r'/boards/(\d+)', board_url)
+    m = re.search(r"/boards/(\d+)", board_url)
     return int(m.group(1)) if m else None
 
 
 # ── Avatar download ───────────────────────────────────────────────────────────
 
+
 def download_avatar(account_id: str, avatar_url: str) -> Path | None:
-    """Download and cache avatar as PNG. Returns local path or None on failure."""
+    """Download and cache Jira avatar. Returns local path or None on failure."""
     AVATAR_CACHE.mkdir(parents=True, exist_ok=True)
     dest = AVATAR_CACHE / f"{account_id}.png"
     if dest.exists():
@@ -115,6 +132,7 @@ def download_avatar(account_id: str, avatar_url: str) -> Path | None:
 
 
 # ── Board members ─────────────────────────────────────────────────────────────
+
 
 def fetch_board_members(
     board_url: str,
@@ -140,7 +158,8 @@ def fetch_board_members(
             base_jql = _strip_order_by(fdata.get("jql", ""))
 
             # Extract label from board URL (e.g. ?label=polaris-squad)
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import parse_qs, urlparse
+
             qs = parse_qs(urlparse(board_url).query)
             label = qs.get("label", [None])[0]
             label_clause = f' AND labels = "{label}"' if label else ""
@@ -160,19 +179,25 @@ def fetch_board_members(
                     aid = a.get("accountId")
                     if aid and aid not in seen:
                         avatar_url = a.get("avatarUrls", {}).get("48x48", "")
-                        avatar_path = download_avatar(aid, avatar_url) if avatar_url else None
+                        avatar_path = (
+                            download_avatar(aid, avatar_url) if avatar_url else None
+                        )
                         seen[aid] = {
-                            "accountId":   aid,
+                            "accountId": aid,
                             "displayName": a.get("displayName", ""),
-                            "avatarUrl":   avatar_url,
-                            "avatarPath":  str(avatar_path) if avatar_path else None,
+                            "avatarUrl": avatar_url,
+                            "avatarPath": str(avatar_path) if avatar_path else None,
                         }
                 if page.get("isLast", True):
                     break
                 next_token = page.get("nextPageToken")
 
             # Filter out service accounts
-            members = [v for v in seen.values() if not v["displayName"].lower().startswith("rbi-")]
+            members = [
+                v
+                for v in seen.values()
+                if not v["displayName"].lower().startswith("rbi-")
+            ]
             on_done(sorted(members, key=lambda x: x["displayName"]))
         except Exception as e:
             on_error(str(e))
@@ -182,6 +207,7 @@ def fetch_board_members(
 
 # ── Issues for participant ─────────────────────────────────────────────────────
 
+
 def fetch_closed_issues_for_participant(
     account_id: str,
     board_url: str,
@@ -189,7 +215,7 @@ def fetch_closed_issues_for_participant(
     on_error: Callable[[str], None],
     is_jefote: bool = False,
 ) -> None:
-    """Fetch Done issues from the current sprint for account_id."""
+    """Fetch Done/closed issues from the current sprint (async, calls on_done or on_error)."""
     if not account_id:
         on_error("No Jira account ID")
         return
@@ -199,15 +225,15 @@ def fetch_closed_issues_for_participant(
             if is_jefote:
                 jql = (
                     f'assignee = "{account_id}" '
-                    f'AND sprint in openSprints() '
-                    f'AND statusCategory = Done '
-                    f'ORDER BY updated DESC'
+                    f"AND sprint in openSprints() "
+                    f"AND statusCategory = Done "
+                    f"ORDER BY updated DESC"
                 )
             else:
                 bid = parse_board_id(board_url) if board_url else None
                 if bid:
-                    cfg   = _request(f"/rest/agile/1.0/board/{bid}/configuration")
-                    fid   = cfg.get("filter", {}).get("id")
+                    cfg = _request(f"/rest/agile/1.0/board/{bid}/configuration")
+                    fid = cfg.get("filter", {}).get("id")
                     fdata = _request(f"/rest/api/2/filter/{fid}")
                     board_jql = _strip_order_by(fdata.get("jql", BOARD_FILTER))
                 else:
@@ -215,28 +241,33 @@ def fetch_closed_issues_for_participant(
 
                 jql = (
                     f'assignee = "{account_id}" '
-                    f'AND ({board_jql}) '
-                    f'AND sprint in openSprints() '
-                    f'AND statusCategory = Done '
-                    f'ORDER BY updated DESC'
+                    f"AND ({board_jql}) "
+                    f"AND sprint in openSprints() "
+                    f"AND statusCategory = Done "
+                    f"ORDER BY updated DESC"
                 )
 
-            data = _request("/rest/api/3/search/jql", body={
-                "jql": jql,
-                "maxResults": 20,
-                "fields": ["summary", "status", "customfield_10004"],
-            })
+            data = _request(
+                "/rest/api/3/search/jql",
+                body={
+                    "jql": jql,
+                    "maxResults": 20,
+                    "fields": ["summary", "status", "customfield_10004"],
+                },
+            )
 
             issues = []
             for item in data.get("issues", []):
                 f = item.get("fields", {})
-                issues.append({
-                    "key":     item["key"],
-                    "summary": f.get("summary", ""),
-                    "status":  f.get("status", {}).get("name", "?"),
-                    "points":  f.get("customfield_10004"),
-                    "url":     f"{JIRA_BASE}/browse/{item['key']}",
-                })
+                issues.append(
+                    {
+                        "key": item["key"],
+                        "summary": f.get("summary", ""),
+                        "status": f.get("status", {}).get("name", "?"),
+                        "points": f.get("customfield_10004"),
+                        "url": f"{JIRA_BASE}/browse/{item['key']}",
+                    }
+                )
             on_done(issues)
         except Exception as e:
             on_error(str(e))
@@ -264,15 +295,15 @@ def fetch_issues_for_participant(
             if is_jefote:
                 jql = (
                     f'assignee = "{account_id}" '
-                    f'AND sprint in openSprints() '
-                    f'AND statusCategory != Done '
-                    f'ORDER BY Rank ASC'
+                    f"AND sprint in openSprints() "
+                    f"AND statusCategory != Done "
+                    f"ORDER BY Rank ASC"
                 )
             else:
                 bid = parse_board_id(board_url) if board_url else None
                 if bid:
-                    cfg   = _request(f"/rest/agile/1.0/board/{bid}/configuration")
-                    fid   = cfg.get("filter", {}).get("id")
+                    cfg = _request(f"/rest/agile/1.0/board/{bid}/configuration")
+                    fid = cfg.get("filter", {}).get("id")
                     fdata = _request(f"/rest/api/2/filter/{fid}")
                     board_jql = _strip_order_by(fdata.get("jql", BOARD_FILTER))
                 else:
@@ -280,28 +311,33 @@ def fetch_issues_for_participant(
 
                 jql = (
                     f'assignee = "{account_id}" '
-                    f'AND ({board_jql}) '
-                    f'AND sprint in openSprints() '
-                    f'AND statusCategory != Done '
-                    f'ORDER BY Rank ASC'
+                    f"AND ({board_jql}) "
+                    f"AND sprint in openSprints() "
+                    f"AND statusCategory != Done "
+                    f"ORDER BY Rank ASC"
                 )
 
-            data = _request("/rest/api/3/search/jql", body={
-                "jql": jql,
-                "maxResults": 30,
-                "fields": ["summary", "status", "customfield_10004", "issuetype"],
-            })
+            data = _request(
+                "/rest/api/3/search/jql",
+                body={
+                    "jql": jql,
+                    "maxResults": 30,
+                    "fields": ["summary", "status", "customfield_10004", "issuetype"],
+                },
+            )
 
             issues = []
             for item in data.get("issues", []):
                 f = item.get("fields", {})
-                issues.append({
-                    "key":     item["key"],
-                    "summary": f.get("summary", ""),
-                    "status":  f.get("status", {}).get("name", "?"),
-                    "points":  f.get("customfield_10004"),
-                    "url":     f"{JIRA_BASE}/browse/{item['key']}",
-                })
+                issues.append(
+                    {
+                        "key": item["key"],
+                        "summary": f.get("summary", ""),
+                        "status": f.get("status", {}).get("name", "?"),
+                        "points": f.get("customfield_10004"),
+                        "url": f"{JIRA_BASE}/browse/{item['key']}",
+                    }
+                )
             on_done(issues)
         except Exception as e:
             on_error(str(e))

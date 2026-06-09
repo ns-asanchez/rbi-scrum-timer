@@ -1,11 +1,18 @@
+"""Meeting tab — 4-column layout: timer/controls, attendees, open Jira tasks, closed Jira tasks."""
+
 import os
 import subprocess
-import customtkinter as ctk
 from datetime import date
+
+import customtkinter as ctk
 from PIL import Image, ImageDraw
-from app.models import MeetingState, MeetingParticipant
+
+from app.jira_client import (
+    fetch_closed_issues_for_participant,
+    fetch_issues_for_participant,
+)
+from app.models import MeetingParticipant, MeetingState
 from app.ui.scroll_fix import apply as apply_scroll
-from app.jira_client import fetch_issues_for_participant, fetch_closed_issues_for_participant
 
 
 def _make_avatar(path: str, size: int = 32) -> ctk.CTkImage | None:
@@ -36,9 +43,9 @@ def _lerp_color(c1: tuple, c2: tuple, t: float) -> str:
 
 def _status_color(ratio: float) -> str:
     """Green → yellow (0→0.6), yellow → red (0.6→1.0+)."""
-    GREEN  = (39, 174, 96)
+    GREEN = (39, 174, 96)
     YELLOW = (241, 196, 15)
-    RED    = (231, 76, 60)
+    RED = (231, 76, 60)
     if ratio <= 0:
         return _lerp_color(GREEN, GREEN, 0)
     if ratio <= 0.6:
@@ -68,7 +75,9 @@ class MeetingTab(ctk.CTkFrame):
         self._speaker_current_path: str = ""
         # Blank 1×1 transparent image used to clear the speaker label image
         _blank_pil = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
-        self._blank_img = ctk.CTkImage(light_image=_blank_pil, dark_image=_blank_pil, size=(1, 1))
+        self._blank_img = ctk.CTkImage(
+            light_image=_blank_pil, dark_image=_blank_pil, size=(1, 1)
+        )
 
         self._build_ui()
         self.refresh_state()
@@ -78,10 +87,10 @@ class MeetingTab(ctk.CTkFrame):
     def _build_ui(self) -> None:
         """Build the 4-column layout."""
         # Configure grid: 4 columns with weights, 1 row
-        self.columnconfigure(0, weight=3)    # timer + controls (fixed feel)
-        self.columnconfigure(1, weight=3)    # attendees (+10%)
-        self.columnconfigure(2, weight=7)    # jira open  (doubled vs attendees)
-        self.columnconfigure(3, weight=7)    # jira closed (doubled)
+        self.columnconfigure(0, weight=3)  # timer + controls (fixed feel)
+        self.columnconfigure(1, weight=3)  # attendees (+10%)
+        self.columnconfigure(2, weight=7)  # jira open  (doubled vs attendees)
+        self.columnconfigure(3, weight=7)  # jira closed (doubled)
         self.rowconfigure(0, weight=1)
 
         # ── Col 0: Timer + Speaker + Controls ────────────────────────────────
@@ -105,12 +114,22 @@ class MeetingTab(ctk.CTkFrame):
         # Meeting header with time + date
         meeting_header = ctk.CTkFrame(left, fg_color="transparent")
         meeting_header.pack(pady=(14, 0), anchor="w", padx=12)
-        ctk.CTkLabel(meeting_header, text="Meeting Time", font=("", 13, "bold")).pack(side="left", padx=(0, 6))
-        self._lbl_config_time = ctk.CTkLabel(meeting_header, text="[--:--]", font=("", 13, "bold"), text_color="gray")
+        ctk.CTkLabel(meeting_header, text="Meeting Time", font=("", 13, "bold")).pack(
+            side="left", padx=(0, 6)
+        )
+        self._lbl_config_time = ctk.CTkLabel(
+            meeting_header, text="[--:--]", font=("", 13, "bold"), text_color="gray"
+        )
         self._lbl_config_time.pack(side="left", padx=(0, 12))
-        ctk.CTkLabel(meeting_header, text="Date:", font=("", 13, "bold")).pack(side="left", padx=(0, 6))
-        ctk.CTkLabel(meeting_header, text=f"[{date.today().strftime('%d %b %Y')}]",
-                     font=("", 13, "bold"), text_color="gray").pack(side="left")
+        ctk.CTkLabel(meeting_header, text="Date:", font=("", 13, "bold")).pack(
+            side="left", padx=(0, 6)
+        )
+        ctk.CTkLabel(
+            meeting_header,
+            text=f"[{date.today().strftime('%d %b %Y')}]",
+            font=("", 13, "bold"),
+            text_color="gray",
+        ).pack(side="left")
 
         # Total elapsed time (big font)
         self._lbl_total = ctk.CTkLabel(left, text="00:00", font=("", 38, "bold"))
@@ -128,17 +147,25 @@ class MeetingTab(ctk.CTkFrame):
 
         # Single label for speaker with compound="top" for avatar above name
         self._lbl_speaker = ctk.CTkLabel(
-            speaker_block, text="—", font=("", 20, "bold"),
-            wraplength=220, justify="center", compound="top"
+            speaker_block,
+            text="—",
+            font=("", 20, "bold"),
+            wraplength=220,
+            justify="center",
+            compound="top",
         )
         self._lbl_speaker.pack(pady=(6, 0))
 
         # Speaker time row: dot + time/allocated
         speaker_time_row = ctk.CTkFrame(speaker_block, fg_color="transparent")
         speaker_time_row.pack(pady=(4, 0))
-        self._dot = ctk.CTkLabel(speaker_time_row, text="●", font=("", 20), text_color="#27ae60")
+        self._dot = ctk.CTkLabel(
+            speaker_time_row, text="●", font=("", 20), text_color="#27ae60"
+        )
         self._dot.pack(side="left", padx=(0, 6))
-        self._lbl_speaker_time = ctk.CTkLabel(speaker_time_row, text="00:00 / 00:00", font=("", 18, "bold"))
+        self._lbl_speaker_time = ctk.CTkLabel(
+            speaker_time_row, text="00:00 / 00:00", font=("", 18, "bold")
+        )
         self._lbl_speaker_time.pack(side="left")
 
         # Progress bar
@@ -154,26 +181,50 @@ class MeetingTab(ctk.CTkFrame):
         btn_frame.pack(pady=(0, 4))
         btn_frame.columnconfigure((0, 1), weight=1)
 
-        self._btn_start = ctk.CTkButton(btn_frame, text="▶  Start", width=120, command=self._on_start)
+        self._btn_start = ctk.CTkButton(
+            btn_frame, text="▶  Start", width=120, command=self._on_start
+        )
         self._btn_start.grid(row=0, column=0, columnspan=2, padx=4, pady=4)
 
-        self._btn_pause = ctk.CTkButton(btn_frame, text="⏸  Pause", width=120, command=self._on_pause)
+        self._btn_pause = ctk.CTkButton(
+            btn_frame, text="⏸  Pause", width=120, command=self._on_pause
+        )
         self._btn_pause.grid(row=1, column=0, padx=4, pady=4)
 
-        self._btn_next = ctk.CTkButton(btn_frame, text="⏭  Next", width=120, command=self._on_next)
+        self._btn_next = ctk.CTkButton(
+            btn_frame, text="⏭  Next", width=120, command=self._on_next
+        )
         self._btn_next.grid(row=1, column=1, padx=4, pady=4)
 
-        self._btn_stop = ctk.CTkButton(btn_frame, text="⏹  Stop", width=120, fg_color="#c0392b",
-                                        hover_color="#922b21", command=self._on_stop)
+        self._btn_stop = ctk.CTkButton(
+            btn_frame,
+            text="⏹  Stop",
+            width=120,
+            fg_color="#c0392b",
+            hover_color="#922b21",
+            command=self._on_stop,
+        )
         self._btn_stop.grid(row=2, column=0, padx=4, pady=4)
 
-        self._btn_reset = ctk.CTkButton(btn_frame, text="↺  Reset", width=120, fg_color="#555",
-                                         hover_color="#333", command=self._on_reset)
+        self._btn_reset = ctk.CTkButton(
+            btn_frame,
+            text="↺  Reset",
+            width=120,
+            fg_color="#555",
+            hover_color="#333",
+            command=self._on_reset,
+        )
         self._btn_reset.grid(row=2, column=1, padx=4, pady=4)
 
         # Save button
-        self._btn_save = ctk.CTkButton(left, text="💾  Save Session", width=250,
-                                        fg_color="#1a7a4a", hover_color="#145c36", command=self._on_save)
+        self._btn_save = ctk.CTkButton(
+            left,
+            text="💾  Save Session",
+            width=250,
+            fg_color="#1a7a4a",
+            hover_color="#145c36",
+            command=self._on_save,
+        )
         self._btn_save.pack(pady=(4, 16))
 
     def _build_col1(self) -> None:
@@ -207,7 +258,9 @@ class MeetingTab(ctk.CTkFrame):
         jira_open.columnconfigure(0, weight=1)
         jira_open.rowconfigure(1, weight=1)
 
-        self._jira_header = ctk.CTkLabel(jira_open, text="🔵  Open Tasks", font=("", 13, "bold"))
+        self._jira_header = ctk.CTkLabel(
+            jira_open, text="🔵  Open Tasks", font=("", 13, "bold")
+        )
         self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
 
         self._list_jira = ctk.CTkScrollableFrame(jira_open)
@@ -222,11 +275,17 @@ class MeetingTab(ctk.CTkFrame):
         jira_closed.columnconfigure(0, weight=1)
         jira_closed.rowconfigure(1, weight=1)
 
-        self._jira_closed_header = ctk.CTkLabel(jira_closed, text="✅  Closed Tasks", font=("", 13, "bold"))
-        self._jira_closed_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
+        self._jira_closed_header = ctk.CTkLabel(
+            jira_closed, text="✅  Closed Tasks", font=("", 13, "bold")
+        )
+        self._jira_closed_header.grid(
+            row=0, column=0, padx=12, pady=(12, 4), sticky="w"
+        )
 
         self._list_jira_closed = ctk.CTkScrollableFrame(jira_closed)
-        self._list_jira_closed.grid(row=1, column=0, padx=8, pady=(0, 12), sticky="nsew")
+        self._list_jira_closed.grid(
+            row=1, column=0, padx=8, pady=(0, 12), sticky="nsew"
+        )
         self._list_jira_closed.columnconfigure(0, weight=1)
         apply_scroll(self._list_jira_closed)
 
@@ -234,7 +293,12 @@ class MeetingTab(ctk.CTkFrame):
 
     def scrollable_frames(self):
         """Return all scrollable frames for scroll fix."""
-        return [self._list_attendees, self._list_jefotes, self._list_jira, self._list_jira_closed]
+        return [
+            self._list_attendees,
+            self._list_jefotes,
+            self._list_jira,
+            self._list_jira_closed,
+        ]
 
     def _scroll_to_current(self) -> None:
         """Auto-scroll to current speaker in the participant list."""
@@ -373,19 +437,27 @@ class MeetingTab(ctk.CTkFrame):
                 if img:
                     if self._speaker_current_path != p.avatar_path:
                         self._speaker_current_path = p.avatar_path
-                        self._lbl_speaker.configure(image=img, text=p.name, compound="top")
+                        self._lbl_speaker.configure(
+                            image=img, text=p.name, compound="top"
+                        )
                 else:
                     if self._speaker_current_path != p.name:
                         self._speaker_current_path = p.name
                         icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-                        self._lbl_speaker.configure(image=self._blank_img, compound="center",
-                                                     text=f"{icon}  {p.name}")
+                        self._lbl_speaker.configure(
+                            image=self._blank_img,
+                            compound="center",
+                            text=f"{icon}  {p.name}",
+                        )
             else:
                 if self._speaker_current_path != p.name:
                     self._speaker_current_path = p.name
                     icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-                    self._lbl_speaker.configure(image=self._blank_img, compound="center",
-                                                 text=f"{icon}  {p.name}")
+                    self._lbl_speaker.configure(
+                        image=self._blank_img,
+                        compound="center",
+                        text=f"{icon}  {p.name}",
+                    )
 
             # Update speaker time
             self._lbl_speaker_time.configure(
@@ -393,7 +465,11 @@ class MeetingTab(ctk.CTkFrame):
             )
 
             # Update progress bar
-            ratio = current.actual_seconds / current.allocated_seconds if current.allocated_seconds else 0
+            ratio = (
+                current.actual_seconds / current.allocated_seconds
+                if current.allocated_seconds
+                else 0
+            )
             self._progress.set(min(ratio, 1.0))
             color = "#e74c3c" if ratio >= 1.0 else "#1f6aa5"
             self._progress.configure(progress_color=color)
@@ -403,7 +479,9 @@ class MeetingTab(ctk.CTkFrame):
         else:
             if self._speaker_current_path != "":
                 self._speaker_current_path = ""
-                self._lbl_speaker.configure(image=self._blank_img, compound="center", text="—")
+                self._lbl_speaker.configure(
+                    image=self._blank_img, compound="center", text="—"
+                )
             self._lbl_speaker_time.configure(text="00:00 / 00:00")
             self._progress.set(0)
             self._stop_blink()
@@ -412,8 +490,16 @@ class MeetingTab(ctk.CTkFrame):
     def _update_dot(self, current) -> None:
         """Update status dot color based on time remaining."""
         remaining = current.allocated_seconds - current.actual_seconds
-        ratio = current.actual_seconds / current.allocated_seconds if current.allocated_seconds else 0
-        if remaining <= 10 and remaining >= 0 and self._timer.state == MeetingState.RUNNING:
+        ratio = (
+            current.actual_seconds / current.allocated_seconds
+            if current.allocated_seconds
+            else 0
+        )
+        if (
+            remaining <= 10
+            and remaining >= 0
+            and self._timer.state == MeetingState.RUNNING
+        ):
             self._start_blink()
         else:
             self._stop_blink()
@@ -426,13 +512,23 @@ class MeetingTab(ctk.CTkFrame):
         can_start = state == MeetingState.IDLE and len(non_jefotes) >= 1
 
         self._set_btn(self._btn_start, can_start)
-        self._set_btn(self._btn_pause, state in (MeetingState.RUNNING, MeetingState.PAUSED))
+        self._set_btn(
+            self._btn_pause, state in (MeetingState.RUNNING, MeetingState.PAUSED)
+        )
         self._btn_pause.configure(
             text="▶  Resume" if state == MeetingState.PAUSED else "⏸  Pause"
         )
-        self._set_btn(self._btn_next, state in (MeetingState.RUNNING, MeetingState.PAUSED) and self._timer.has_next())
-        self._set_btn(self._btn_stop, state in (MeetingState.RUNNING, MeetingState.PAUSED))
-        self._set_btn(self._btn_reset, state in (MeetingState.IDLE, MeetingState.FINISHED))
+        self._set_btn(
+            self._btn_next,
+            state in (MeetingState.RUNNING, MeetingState.PAUSED)
+            and self._timer.has_next(),
+        )
+        self._set_btn(
+            self._btn_stop, state in (MeetingState.RUNNING, MeetingState.PAUSED)
+        )
+        self._set_btn(
+            self._btn_reset, state in (MeetingState.IDLE, MeetingState.FINISHED)
+        )
         self._set_btn(self._btn_save, state == MeetingState.FINISHED)
 
     def _set_btn(self, btn: ctk.CTkButton, enabled: bool) -> None:
@@ -461,11 +557,15 @@ class MeetingTab(ctk.CTkFrame):
                         av = ctk.CTkLabel(row, text="", image=img, width=32)
                         av._image = img
                         av.pack(side="left", padx=(4, 2), pady=2)
-                        ctk.CTkLabel(row, text=p.name, anchor="w").pack(side="left", padx=2)
+                        ctk.CTkLabel(row, text=p.name, anchor="w").pack(
+                            side="left", padx=2
+                        )
                         continue
 
                 icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-                ctk.CTkLabel(row, text=f"{icon}  {p.name}", anchor="w").pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=f"{icon}  {p.name}", anchor="w").pack(
+                    side="left", padx=4
+                )
         else:
             # RUNNING/FINISHED: show queue with status indicators
             for mp in self._timer.non_jefotes:
@@ -478,7 +578,7 @@ class MeetingTab(ctk.CTkFrame):
 
     def _render_mp_row(self, container, mp: MeetingParticipant) -> None:
         """Render a single participant row with status, avatar, and time."""
-        is_current = (self._timer.current == mp)
+        is_current = self._timer.current == mp
         if mp.done:
             fg = "#2d5a27" if not mp.participant.is_jefote else "#5a4a27"
         elif is_current:
@@ -503,23 +603,36 @@ class MeetingTab(ctk.CTkFrame):
             img = None
 
         if img:
-            av_lbl = ctk.CTkLabel(row, text=indicator.strip(), image=img,
-                                  compound="left", font=font,
-                                  text_color=txt_color or "white", anchor="w")
+            av_lbl = ctk.CTkLabel(
+                row,
+                text=indicator.strip(),
+                image=img,
+                compound="left",
+                font=font,
+                text_color=txt_color or "white",
+                anchor="w",
+            )
             av_lbl._image = img  # keep reference
             av_lbl.grid(row=0, column=0, padx=(8, 4), pady=4, sticky="w")
-            ctk.CTkLabel(row, text=f"  {p.name}", anchor="w",
-                         font=font, text_color=txt_color).grid(row=0, column=1, padx=(0, 4), pady=4, sticky="w")
+            ctk.CTkLabel(
+                row, text=f"  {p.name}", anchor="w", font=font, text_color=txt_color
+            ).grid(row=0, column=1, padx=(0, 4), pady=4, sticky="w")
         else:
             icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-            ctk.CTkLabel(row, text=f"{indicator}{icon}  {p.name}", anchor="w",
-                         font=font, text_color=txt_color).grid(row=0, column=0, columnspan=2, padx=(8, 4), pady=4, sticky="w")
+            ctk.CTkLabel(
+                row,
+                text=f"{indicator}{icon}  {p.name}",
+                anchor="w",
+                font=font,
+                text_color=txt_color,
+            ).grid(row=0, column=0, columnspan=2, padx=(8, 4), pady=4, sticky="w")
 
         # Time column
         ctk.CTkLabel(
             row,
             text=f"{_fmt(mp.actual_seconds)} / {_fmt(mp.allocated_seconds)}",
-            anchor="e", font=("", 11),
+            anchor="e",
+            font=("", 11),
             text_color="gray" if mp.done else None,
         ).grid(row=0, column=2, padx=(4, 8), pady=4, sticky="e")
 
@@ -540,12 +653,14 @@ class MeetingTab(ctk.CTkFrame):
         self._clear_jira_list()
 
         # Show loading indicator
-        loading = ctk.CTkLabel(self._list_jira, text="⏳ Loading…", font=("", 11), text_color="gray")
+        loading = ctk.CTkLabel(
+            self._list_jira, text="⏳ Loading…", font=("", 11), text_color="gray"
+        )
         loading.pack(padx=8, pady=8, anchor="w")
 
         account_id = current.participant.jira_account_id
-        is_jefote  = current.participant.is_jefote
-        board_url  = os.environ.get("JIRA_BOARD_URL", "")
+        is_jefote = current.participant.is_jefote
+        board_url = os.environ.get("JIRA_BOARD_URL", "")
 
         # Collect results from both fetches before rendering
         self._jira_fetch_results = {}
@@ -553,28 +668,36 @@ class MeetingTab(ctk.CTkFrame):
         def _on_open(issues):
             self._jira_fetch_results["open"] = issues
             if "closed" in self._jira_fetch_results:
-                self.after(0, lambda: self._render_jira_issues(
-                    self._jira_fetch_results["open"],
-                    self._jira_fetch_results["closed"],
-                ))
+                self.after(
+                    0,
+                    lambda: self._render_jira_issues(
+                        self._jira_fetch_results["open"],
+                        self._jira_fetch_results["closed"],
+                    ),
+                )
 
         def _on_closed(issues):
             self._jira_fetch_results["closed"] = issues
             if "open" in self._jira_fetch_results:
-                self.after(0, lambda: self._render_jira_issues(
-                    self._jira_fetch_results["open"],
-                    self._jira_fetch_results["closed"],
-                ))
+                self.after(
+                    0,
+                    lambda: self._render_jira_issues(
+                        self._jira_fetch_results["open"],
+                        self._jira_fetch_results["closed"],
+                    ),
+                )
 
         # Fetch both in parallel
         fetch_issues_for_participant(
-            account_id, board_url=board_url,
+            account_id,
+            board_url=board_url,
             on_done=_on_open,
             on_error=lambda err: self.after(0, lambda: self._jira_error(err)),
             is_jefote=is_jefote,
         )
         fetch_closed_issues_for_participant(
-            account_id, board_url=board_url,
+            account_id,
+            board_url=board_url,
             on_done=_on_closed,
             on_error=lambda err: self._jira_fetch_results.setdefault("closed", []),
             is_jefote=is_jefote,
@@ -591,35 +714,47 @@ class MeetingTab(ctk.CTkFrame):
         """Display error message in Jira panel."""
         self._clear_jira_list()
         lbl = ctk.CTkLabel(
-            self._list_jira, text=f"⚠ {msg}", font=("", 11),
-            text_color="#e74c3c", wraplength=500, justify="left"
+            self._list_jira,
+            text=f"⚠ {msg}",
+            font=("", 11),
+            text_color="#e74c3c",
+            wraplength=500,
+            justify="left",
         )
         lbl.pack(padx=8, pady=6, anchor="w")
 
-    def _render_jira_issues(self, issues: list[dict], closed: list[dict] | None = None) -> None:
+    def _render_jira_issues(
+        self, issues: list[dict], closed: list[dict] | None = None
+    ) -> None:
         """Render open and closed Jira task cards."""
         self._clear_jira_list()
         if not issues and not closed:
-            ctk.CTkLabel(self._list_jira, text="No issues found",
-                         font=("", 11), text_color="gray").pack(padx=8, pady=12)
+            ctk.CTkLabel(
+                self._list_jira,
+                text="No issues found",
+                font=("", 11),
+                text_color="gray",
+            ).pack(padx=8, pady=12)
             return
 
         STATUS_COLORS = {
             "In Progress": "#1f6aa5",
-            "En curso":    "#1f6aa5",
-            "In Review":   "#8e44ad",
-            "To Do":       "#555555",
-            "Abierta":     "#555555",
-            "Open":        "#555555",
-            "Blocked":     "#c0392b",
-            "Bloqueada":   "#c0392b",
-            "More Info":   "#d68910",
-            "Más info":    "#d68910",
+            "En curso": "#1f6aa5",
+            "In Review": "#8e44ad",
+            "To Do": "#555555",
+            "Abierta": "#555555",
+            "Open": "#555555",
+            "Blocked": "#c0392b",
+            "Bloqueada": "#c0392b",
+            "More Info": "#d68910",
+            "Más info": "#d68910",
         }
 
         # ── Open issues ─────────────────────────────────────────────────────
         for issue in issues:
-            card = ctk.CTkFrame(self._list_jira, corner_radius=6, fg_color=("gray88", "gray22"))
+            card = ctk.CTkFrame(
+                self._list_jira, corner_radius=6, fg_color=("gray88", "gray22")
+            )
             card.pack(fill="x", padx=6, pady=4)
             card.columnconfigure(1, weight=1)
 
@@ -656,56 +791,102 @@ class MeetingTab(ctk.CTkFrame):
             status_lbl.pack(side="right", padx=(4, 0))
 
             # Story points
-            sp_text = f"SP: {int(issue['points'])}" if issue["points"] is not None else "SP: —"
+            sp_text = (
+                f"SP: {int(issue['points'])}"
+                if issue["points"] is not None
+                else "SP: —"
+            )
             sp_lbl = ctk.CTkLabel(top, text=sp_text, font=("", 10), text_color="gray")
             sp_lbl.pack(side="right", padx=(0, 8))
 
             # Summary — wraplength tracks card width dynamically
             summary_lbl = ctk.CTkLabel(
-                card, text=issue["summary"], font=("", 12),
-                anchor="w", justify="left", wraplength=400,
+                card,
+                text=issue["summary"],
+                font=("", 12),
+                anchor="w",
+                justify="left",
+                wraplength=400,
             )
             summary_lbl.pack(fill="x", padx=10, pady=(2, 8), anchor="w")
-            card.bind("<Configure>",
-                      lambda e, lbl=summary_lbl: lbl.configure(wraplength=max(100, e.width - 24)))
+            card.bind(
+                "<Configure>",
+                lambda e, lbl=summary_lbl: lbl.configure(
+                    wraplength=max(100, e.width - 24)
+                ),
+            )
 
         apply_scroll(self._list_jira)
 
         # ── Closed issues ────────────────────────────────────────────────────
         if closed:
             for issue in closed:
-                card = ctk.CTkFrame(self._list_jira_closed, corner_radius=6, fg_color=("gray84", "gray18"))
+                card = ctk.CTkFrame(
+                    self._list_jira_closed,
+                    corner_radius=6,
+                    fg_color=("gray84", "gray18"),
+                )
                 card.pack(fill="x", padx=6, pady=4)
                 top = ctk.CTkFrame(card, fg_color="transparent")
                 top.pack(fill="x", padx=8, pady=(8, 2))
 
                 # Key button
                 ctk.CTkButton(
-                    top, text=issue["key"], font=("", 12, "bold"), width=90, height=24,
-                    fg_color="transparent", text_color=("gray50", "gray50"), hover=False, anchor="w",
+                    top,
+                    text=issue["key"],
+                    font=("", 12, "bold"),
+                    width=90,
+                    height=24,
+                    fg_color="transparent",
+                    text_color=("gray50", "gray50"),
+                    hover=False,
+                    anchor="w",
                     command=lambda url=issue["url"]: subprocess.Popen(["open", url]),
                 ).pack(side="left", padx=(0, 8))
 
                 # Status badge (right side, same order as open tasks)
                 ctk.CTkLabel(
-                    top, text=f" {issue['status']} ", font=("", 10),
-                    text_color="white", fg_color="#27ae60", corner_radius=4,
+                    top,
+                    text=f" {issue['status']} ",
+                    font=("", 10),
+                    text_color="white",
+                    fg_color="#27ae60",
+                    corner_radius=4,
                 ).pack(side="right", padx=(4, 0))
 
                 # Story points (left of status badge)
-                sp_text = f"SP: {int(issue['points'])}" if issue["points"] is not None else "SP: —"
-                ctk.CTkLabel(top, text=sp_text, font=("", 10), text_color="gray").pack(side="right", padx=(0, 8))
+                sp_text = (
+                    f"SP: {int(issue['points'])}"
+                    if issue["points"] is not None
+                    else "SP: —"
+                )
+                ctk.CTkLabel(top, text=sp_text, font=("", 10), text_color="gray").pack(
+                    side="right", padx=(0, 8)
+                )
 
                 # Summary — wraplength tracks card width dynamically
                 summary_lbl = ctk.CTkLabel(
-                    card, text=issue["summary"], font=("", 12),
-                    anchor="w", justify="left", wraplength=400, text_color="gray",
+                    card,
+                    text=issue["summary"],
+                    font=("", 12),
+                    anchor="w",
+                    justify="left",
+                    wraplength=400,
+                    text_color="gray",
                 )
                 summary_lbl.pack(fill="x", padx=10, pady=(2, 8), anchor="w")
-                card.bind("<Configure>",
-                          lambda e, lbl=summary_lbl: lbl.configure(wraplength=max(100, e.width - 24)))
+                card.bind(
+                    "<Configure>",
+                    lambda e, lbl=summary_lbl: lbl.configure(
+                        wraplength=max(100, e.width - 24)
+                    ),
+                )
         else:
-            ctk.CTkLabel(self._list_jira_closed, text="No closed issues",
-                         font=("", 11), text_color="gray").pack(padx=8, pady=12)
+            ctk.CTkLabel(
+                self._list_jira_closed,
+                text="No closed issues",
+                font=("", 11),
+                text_color="gray",
+            ).pack(padx=8, pady=12)
 
         apply_scroll(self._list_jira_closed)

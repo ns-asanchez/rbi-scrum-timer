@@ -1,4 +1,5 @@
 """Bell sound generator — stdlib only, macOS/Linux/Windows portable."""
+
 import array
 import math
 import os
@@ -12,9 +13,9 @@ import wave
 def _generate_bell_wav(path: str, volume: float) -> None:
     """Write a short bell-like chime to a WAV file (stdlib only)."""
     sample_rate = 44100
-    duration = 0.35       # seconds
-    freq1 = 880.0         # A5 — bright, bell-like
-    freq2 = 1320.0        # E6 — overtone
+    duration = 0.35  # seconds
+    freq1 = 880.0  # A5 — bright, bell-like
+    freq2 = 1320.0  # E6 — overtone
 
     n = int(sample_rate * duration)
     samples = array.array("h")  # signed short
@@ -24,8 +25,8 @@ def _generate_bell_wav(path: str, volume: float) -> None:
         t = i / sample_rate
         envelope = math.exp(-6 * t / duration)
         value = envelope * (
-            0.7 * math.sin(2 * math.pi * freq1 * t) +
-            0.3 * math.sin(2 * math.pi * freq2 * t)
+            0.7 * math.sin(2 * math.pi * freq1 * t)
+            + 0.3 * math.sin(2 * math.pi * freq2 * t)
         )
         samples.append(int(value * peak))
 
@@ -38,14 +39,21 @@ def _generate_bell_wav(path: str, volume: float) -> None:
 
 def _play_wav(path: str) -> None:
     if sys.platform == "darwin":
-        subprocess.Popen(["afplay", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(
+            ["afplay", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
     elif sys.platform.startswith("linux"):
         for player in ("aplay", "paplay", "ffplay"):
-            if os.path.exists(f"/usr/bin/{player}") or os.path.exists(f"/usr/local/bin/{player}"):
-                subprocess.Popen([player, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if os.path.exists(f"/usr/bin/{player}") or os.path.exists(
+                f"/usr/local/bin/{player}"
+            ):
+                subprocess.Popen(
+                    [player, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 break
     elif sys.platform == "win32":
         import winsound  # noqa: PLC0415
+
         winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
 
 

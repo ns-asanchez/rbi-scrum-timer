@@ -1,5 +1,8 @@
+"""Main entry point — loads Jira credentials from ~/.zshrc and launches the app."""
+
 import os
 import subprocess
+
 from app.ui.app_window import AppWindow
 
 
@@ -10,7 +13,9 @@ def _load_env_from_zshrc() -> None:
     try:
         result = subprocess.run(
             ["zsh", "-c", "source ~/.zshrc && env"],
-            capture_output=True, text=True, timeout=5
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         for line in result.stdout.splitlines():
             if line.startswith(("ATLASSIAN_EMAIL=", "ATLASSIAN_API_TOKEN=")):

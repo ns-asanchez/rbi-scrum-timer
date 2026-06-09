@@ -1,7 +1,25 @@
+"""Data models — participants, meetings, config, and session records."""
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-FOOD_ICONS = ["🍕", "🍔", "🌮", "🍣", "🍜", "🥗", "🌯", "🍩", "🍎", "🧆", "🥪", "🌽", "🍇", "🥑", "🍦"]
+FOOD_ICONS = [
+    "🍕",
+    "🍔",
+    "🌮",
+    "🍣",
+    "🍜",
+    "🥗",
+    "🌯",
+    "🍩",
+    "🍎",
+    "🧆",
+    "🥪",
+    "🌽",
+    "🍇",
+    "🥑",
+    "🍦",
+]
 
 
 class MeetingState(Enum):

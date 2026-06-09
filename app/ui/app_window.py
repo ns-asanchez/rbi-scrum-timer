@@ -1,17 +1,20 @@
-import customtkinter as ctk
+"""Main application window — orchestrates 5 tabs and meeting lifecycle."""
+
 from datetime import datetime
-from app.ui.dialogs import showinfo, showwarning, showerror, askyesno
+
+import customtkinter as ctk
 
 from app import db
 from app.bell import play_bell
-from app.models import MeetingConfig, MeetingState
 from app.meeting import MeetingTimer
+from app.models import MeetingConfig, MeetingState
+from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
+from app.ui.help_tab import HelpTab
 from app.ui.meeting_tab import MeetingTab
 from app.ui.participants_tab import ParticipantsTab
-from app.ui.stats_tab import StatsTab
-from app.ui.settings_tab import SettingsTab
-from app.ui.help_tab import HelpTab
 from app.ui.scroll_fix import apply as apply_scroll
+from app.ui.settings_tab import SettingsTab
+from app.ui.stats_tab import StatsTab
 
 
 class AppWindow(ctk.CTk):
@@ -42,6 +45,7 @@ class AppWindow(ctk.CTk):
     # ── Build ─────────────────────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
+        """Build 5-tab layout and initialize scroll fix."""
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
@@ -97,10 +101,18 @@ class AppWindow(ctk.CTk):
     # ── Callbacks ─────────────────────────────────────────────────────────────
 
     def _update_attendees(self, attendees: list) -> None:
+        """Refresh meeting tab when attendee list changes."""
         self._attendees = attendees
         self._meeting_tab.refresh_state()
 
-    def _update_config(self, duration_minutes: int, meeting_name: str = "", bell_enabled: bool = True, bell_volume: int = 70) -> None:
+    def _update_config(
+        self,
+        duration_minutes: int,
+        meeting_name: str = "",
+        bell_enabled: bool = True,
+        bell_volume: int = 70,
+    ) -> None:
+        """Update meeting config and refresh UI."""
         name = meeting_name or self._config.meeting_name
         self._config = MeetingConfig(
             duration_minutes=duration_minutes,
@@ -112,34 +124,47 @@ class AppWindow(ctk.CTk):
         self._meeting_tab.refresh_state()
 
     def _on_bell(self) -> None:
+        """Play bell sound if enabled in config."""
         if self._config.bell_enabled:
             play_bell(self._config.bell_volume)
 
     def _on_timer_tick(self) -> None:
+        """Refresh timer display on each tick."""
         self._meeting_tab._update_timers()
 
     def _on_meeting_finished(self) -> None:
+        """Handle meeting completion and show notification."""
         self._meeting_tab._cancel_tick()
         self._meeting_tab.refresh_state()
-        showinfo(self, "Meeting Finished", "The meeting has ended!\nPress 💾 Save Session to record results.")
+        showinfo(
+            self,
+            "Meeting Finished",
+            "The meeting has ended!\nPress 💾 Save Session to record results.",
+        )
 
     def _on_participants_changed_from_settings(self) -> None:
         """Called when Settings tab adds/updates participants — refresh participants tab."""
         self._participants_tab.load_data()
 
     def _on_tab_change(self) -> None:
+        """Load stats when Stats tab is activated."""
         tab = self._tabs.get()
         if tab == "📊  Stats":
             self._stats_tab.load_data()
 
     def _on_close(self) -> None:
+        """Prevent closing while meeting is active."""
         if self._timer.state in (MeetingState.RUNNING, MeetingState.PAUSED):
-            showwarning(self, "Meeting in progress",
-                        "The meeting is still in progress.\nPlease stop or finish it before closing.")
+            showwarning(
+                self,
+                "Meeting in progress",
+                "The meeting is still in progress.\nPlease stop or finish it before closing.",
+            )
             return
         self.destroy()
 
     def _save_session(self) -> None:
+        """Save the completed meeting to the database."""
         if self._timer.state != MeetingState.FINISHED:
             return
         today = datetime.now().strftime("%Y-%m-%d %H:%M")

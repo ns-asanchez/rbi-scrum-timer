@@ -1,13 +1,17 @@
+"""Participants tab — manage attendees, config, Jira sync."""
+
 import customtkinter as ctk
-from app.ui.dialogs import showinfo, showwarning, showerror, askyesno
 from PIL import Image, ImageDraw
+
 from app import db
 from app.bell import play_bell
 from app.models import MeetingState
+from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
 from app.ui.scroll_fix import apply as apply_scroll
 
 
 def _make_avatar(path: str, size: int = 28) -> ctk.CTkImage | None:
+    """Create a circular avatar from a local image file."""
     try:
         img = Image.open(path).convert("RGBA").resize((size, size), Image.LANCZOS)
         mask = Image.new("L", (size, size), 0)
@@ -19,7 +23,15 @@ def _make_avatar(path: str, size: int = 28) -> ctk.CTkImage | None:
 
 
 class ParticipantsTab(ctk.CTkFrame):
-    def __init__(self, parent, get_state_cb, get_attendees_cb, set_attendees_cb, get_config_cb, set_config_cb):
+    def __init__(
+        self,
+        parent,
+        get_state_cb,
+        get_attendees_cb,
+        set_attendees_cb,
+        get_config_cb,
+        set_config_cb,
+    ):
         super().__init__(parent, fg_color="transparent")
         self._get_state = get_state_cb
         self._get_attendees = get_attendees_cb
@@ -36,6 +48,7 @@ class ParticipantsTab(ctk.CTkFrame):
     # ── Build ─────────────────────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
+        """Build 3-column layout: all participants, transfer buttons, in-meeting participants."""
         self.columnconfigure(0, weight=2)
         self.columnconfigure(1, weight=0)
         self.columnconfigure(2, weight=2)
@@ -43,18 +56,28 @@ class ParticipantsTab(ctk.CTkFrame):
 
         # ── Header row 1: meeting name + duration ─────────────────────────────
         cfg_frame = ctk.CTkFrame(self)
-        cfg_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=(10, 6), sticky="ew")
-        ctk.CTkLabel(cfg_frame, text="Meeting Name:", font=("", 12, "bold")).pack(side="left", padx=(12, 8))
+        cfg_frame.grid(
+            row=0, column=0, columnspan=3, padx=10, pady=(10, 6), sticky="ew"
+        )
+        ctk.CTkLabel(cfg_frame, text="Meeting Name:", font=("", 12, "bold")).pack(
+            side="left", padx=(12, 8)
+        )
         self._entry_name = ctk.CTkEntry(cfg_frame, width=220)
         self._entry_name.pack(side="left")
-        ctk.CTkLabel(cfg_frame, text="Duration (min):", font=("", 12, "bold")).pack(side="left", padx=(16, 8))
+        ctk.CTkLabel(cfg_frame, text="Duration (min):", font=("", 12, "bold")).pack(
+            side="left", padx=(16, 8)
+        )
         self._entry_duration = ctk.CTkEntry(cfg_frame, width=50, justify="center")
         self._entry_duration.pack(side="left")
-        ctk.CTkButton(cfg_frame, text="Save", width=80, command=self._save_config).pack(side="left", padx=8)
+        ctk.CTkButton(cfg_frame, text="Save", width=80, command=self._save_config).pack(
+            side="left", padx=8
+        )
 
         # ── Header row 2: bell settings ───────────────────────────────────────
         bell_frame = ctk.CTkFrame(self)
-        bell_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 6), sticky="ew")
+        bell_frame.grid(
+            row=1, column=0, columnspan=3, padx=10, pady=(0, 6), sticky="ew"
+        )
 
         self._bell_var = ctk.BooleanVar(value=True)
         self._bell_check = ctk.CTkCheckBox(
@@ -66,21 +89,28 @@ class ParticipantsTab(ctk.CTkFrame):
         )
         self._bell_check.pack(side="left", padx=(12, 16))
 
-        ctk.CTkLabel(bell_frame, text="Volume:", font=("", 12)).pack(side="left", padx=(0, 6))
+        ctk.CTkLabel(bell_frame, text="Volume:", font=("", 12)).pack(
+            side="left", padx=(0, 6)
+        )
         self._bell_volume_var = ctk.IntVar(value=70)
         self._bell_slider = ctk.CTkSlider(
             bell_frame,
-            from_=0, to=100,
+            from_=0,
+            to=100,
             number_of_steps=20,
             variable=self._bell_volume_var,
             width=140,
             command=self._on_volume_change,
         )
         self._bell_slider.pack(side="left")
-        self._bell_volume_lbl = ctk.CTkLabel(bell_frame, text="70%", font=("", 12), width=36)
+        self._bell_volume_lbl = ctk.CTkLabel(
+            bell_frame, text="70%", font=("", 12), width=36
+        )
         self._bell_volume_lbl.pack(side="left", padx=(6, 8))
         ctk.CTkButton(
-            bell_frame, text="▶ Test", width=70,
+            bell_frame,
+            text="▶ Test",
+            width=70,
             command=self._test_bell,
         ).pack(side="left", padx=(4, 8))
 
@@ -94,26 +124,47 @@ class ParticipantsTab(ctk.CTkFrame):
 
         all_btns = ctk.CTkFrame(self, fg_color="transparent")
         all_btns.grid(row=4, column=0, padx=10, pady=(0, 8), sticky="ew")
-        ctk.CTkButton(all_btns, text="+ New", width=80, command=self._open_add_dialog).pack(side="left", padx=4)
-        self._btn_edit = ctk.CTkButton(all_btns, text="✏ Edit", width=80, command=self._open_edit_dialog)
+        ctk.CTkButton(
+            all_btns, text="+ New", width=80, command=self._open_add_dialog
+        ).pack(side="left", padx=4)
+        self._btn_edit = ctk.CTkButton(
+            all_btns, text="✏ Edit", width=80, command=self._open_edit_dialog
+        )
         self._btn_edit.pack(side="left", padx=4)
-        self._btn_delete = ctk.CTkButton(all_btns, text="🗑 Delete", width=80,
-                                          fg_color="#c0392b", hover_color="#922b21",
-                                          command=self._delete_participant)
+        self._btn_delete = ctk.CTkButton(
+            all_btns,
+            text="🗑 Delete",
+            width=80,
+            fg_color="#c0392b",
+            hover_color="#922b21",
+            command=self._delete_participant,
+        )
         self._btn_delete.pack(side="left", padx=4)
 
         # ── Center: transfer buttons ───────────────────────────────────────────
         center = ctk.CTkFrame(self, fg_color="transparent")
         center.grid(row=3, column=1, padx=4, pady=0, sticky="ns")
         center.rowconfigure((0, 1, 2, 3, 4), weight=1)
-        self._btn_add_to_mtg = ctk.CTkButton(center, text="→", width=50, command=self._add_to_meeting)
+        self._btn_add_to_mtg = ctk.CTkButton(
+            center, text="→", width=50, command=self._add_to_meeting
+        )
         self._btn_add_to_mtg.grid(row=0, column=0, pady=4)
-        self._btn_add_all = ctk.CTkButton(center, text="»", width=50, command=self._add_all_to_meeting)
+        self._btn_add_all = ctk.CTkButton(
+            center, text="»", width=50, command=self._add_all_to_meeting
+        )
         self._btn_add_all.grid(row=1, column=0, pady=4)
-        self._btn_remove_from_mtg = ctk.CTkButton(center, text="←", width=50, command=self._remove_from_meeting)
+        self._btn_remove_from_mtg = ctk.CTkButton(
+            center, text="←", width=50, command=self._remove_from_meeting
+        )
         self._btn_remove_from_mtg.grid(row=2, column=0, pady=4)
-        self._btn_clear_mtg = ctk.CTkButton(center, text="✕", width=50, fg_color="#555",
-                                              hover_color="#333", command=self._clear_meeting)
+        self._btn_clear_mtg = ctk.CTkButton(
+            center,
+            text="✕",
+            width=50,
+            fg_color="#555",
+            hover_color="#333",
+            command=self._clear_meeting,
+        )
         self._btn_clear_mtg.grid(row=3, column=0, pady=4)
 
         # ── Right: meeting attendees ───────────────────────────────────────────
@@ -121,10 +172,14 @@ class ParticipantsTab(ctk.CTkFrame):
             row=2, column=2, padx=10, pady=(8, 2), sticky="nw"
         )
         self._list_meeting = ctk.CTkScrollableFrame(self)
-        self._list_meeting.grid(row=3, column=2, padx=(4, 10), pady=(0, 4), sticky="nsew")
+        self._list_meeting.grid(
+            row=3, column=2, padx=(4, 10), pady=(0, 4), sticky="nsew"
+        )
         self._list_meeting.columnconfigure(0, weight=1)
 
-        self._lbl_attendee_count = ctk.CTkLabel(self, text="0 attendees", font=("", 11), text_color="gray")
+        self._lbl_attendee_count = ctk.CTkLabel(
+            self, text="0 attendees", font=("", 11), text_color="gray"
+        )
         self._lbl_attendee_count.grid(row=4, column=2, padx=10, pady=(0, 8), sticky="w")
 
         # ── Inline selection tracking ──────────────────────────────────────────
@@ -132,11 +187,13 @@ class ParticipantsTab(ctk.CTkFrame):
         self._selected_mtg: int | None = None
 
     def scrollable_frames(self):
+        """Return scrollable frames for scroll fix."""
         return [self._list_all, self._list_meeting]
 
     # ── Data loading ──────────────────────────────────────────────────────────
 
     def load_data(self) -> None:
+        """Load participants and config from database, refresh UI."""
         self._all_participants = db.get_all_participants()
         config = self._get_config()
         self._entry_duration.delete(0, "end")
@@ -146,7 +203,9 @@ class ParticipantsTab(ctk.CTkFrame):
         self._bell_var.set(config.bell_enabled)
         self._bell_volume_var.set(config.bell_volume)
         self._bell_volume_lbl.configure(text=f"{config.bell_volume}%")
-        self._bell_slider.configure(state="normal" if config.bell_enabled else "disabled")
+        self._bell_slider.configure(
+            state="normal" if config.bell_enabled else "disabled"
+        )
         # Re-sync attendees: keep same IDs but replace objects with fresh DB data
         fresh = {p.id: p for p in self._all_participants}
         current_ids = {a.id for a in self._get_attendees()}
@@ -155,6 +214,7 @@ class ParticipantsTab(ctk.CTkFrame):
         self._render_meeting()
 
     def _render_all(self) -> None:
+        """Render all participants list."""
         for w in self._list_all.winfo_children():
             w.destroy()
         for p in self._all_participants:
@@ -162,9 +222,13 @@ class ParticipantsTab(ctk.CTkFrame):
         apply_scroll(self._list_all)
 
     def _make_all_row(self, p) -> None:
+        """Render a row for a participant in the all-participants list."""
         in_mtg = any(a.id == p.id for a in self._attendees)
-        row = ctk.CTkFrame(self._list_all, fg_color="#1a3a5a" if self._selected_all == p.id else "transparent",
-                            corner_radius=6)
+        row = ctk.CTkFrame(
+            self._list_all,
+            fg_color="#1a3a5a" if self._selected_all == p.id else "transparent",
+            corner_radius=6,
+        )
         row.pack(fill="x", padx=4, pady=2)
         dimmed = "#888" if in_mtg else None
 
@@ -177,12 +241,18 @@ class ParticipantsTab(ctk.CTkFrame):
                 lbl.pack(side="left", padx=(6, 2), pady=4)
             else:
                 icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-                ctk.CTkLabel(row, text=icon, width=32).pack(side="left", padx=(6,2), pady=4)
+                ctk.CTkLabel(row, text=icon, width=32).pack(
+                    side="left", padx=(6, 2), pady=4
+                )
         else:
             icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-            ctk.CTkLabel(row, text=icon, width=32).pack(side="left", padx=(6,2), pady=4)
+            ctk.CTkLabel(row, text=icon, width=32).pack(
+                side="left", padx=(6, 2), pady=4
+            )
 
-        ctk.CTkLabel(row, text=p.name, anchor="w", text_color=dimmed).pack(side="left", padx=4, pady=6)
+        ctk.CTkLabel(row, text=p.name, anchor="w", text_color=dimmed).pack(
+            side="left", padx=4, pady=6
+        )
         if in_mtg:
             ctk.CTkLabel(row, text="✓", text_color="#1a7a4a").pack(side="right", padx=8)
         row.bind("<Button-1>", lambda e, pid=p.id: self._select_all(pid))
@@ -190,6 +260,7 @@ class ParticipantsTab(ctk.CTkFrame):
             child.bind("<Button-1>", lambda e, pid=p.id: self._select_all(pid))
 
     def _render_meeting(self) -> None:
+        """Render attendees for today's meeting."""
         for w in self._list_meeting.winfo_children():
             w.destroy()
         for p in sorted(self._attendees, key=lambda x: x.name):
@@ -203,6 +274,7 @@ class ParticipantsTab(ctk.CTkFrame):
         apply_scroll(self._list_meeting)
 
     def _make_mtg_row(self, p) -> None:
+        """Render a row for a participant in the meeting attendees list."""
         row = ctk.CTkFrame(
             self._list_meeting,
             fg_color="#1a3a5a" if self._selected_mtg == p.id else "transparent",
@@ -215,13 +287,17 @@ class ParticipantsTab(ctk.CTkFrame):
             if img:
                 lbl = ctk.CTkLabel(row, text="", image=img, width=32)
                 lbl._image = img
-                lbl.pack(side="left", padx=(6,2), pady=4)
+                lbl.pack(side="left", padx=(6, 2), pady=4)
             else:
                 icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-                ctk.CTkLabel(row, text=icon, width=32).pack(side="left", padx=(6,2), pady=4)
+                ctk.CTkLabel(row, text=icon, width=32).pack(
+                    side="left", padx=(6, 2), pady=4
+                )
         else:
             icon = "👑" if p.is_jefote else (p.food_icon or "🍕")
-            ctk.CTkLabel(row, text=icon, width=32).pack(side="left", padx=(6,2), pady=4)
+            ctk.CTkLabel(row, text=icon, width=32).pack(
+                side="left", padx=(6, 2), pady=4
+            )
 
         ctk.CTkLabel(row, text=p.name, anchor="w").pack(side="left", padx=4, pady=6)
         row.bind("<Button-1>", lambda e, pid=p.id: self._select_mtg(pid))
@@ -231,25 +307,33 @@ class ParticipantsTab(ctk.CTkFrame):
     # ── Selection ─────────────────────────────────────────────────────────────
 
     def _select_all(self, pid: int) -> None:
+        """Toggle selection in all-participants list."""
         self._selected_all = pid if self._selected_all != pid else None
         self._render_all()
 
     def _select_mtg(self, pid: int) -> None:
+        """Toggle selection in meeting attendees list."""
         self._selected_mtg = pid if self._selected_mtg != pid else None
         self._render_meeting()
 
     # ── Transfer ──────────────────────────────────────────────────────────────
 
     def _is_meeting_locked(self) -> bool:
+        """Check if a meeting is currently running or paused."""
         return self._get_state() in (MeetingState.RUNNING, MeetingState.PAUSED)
 
     def _add_to_meeting(self) -> None:
+        """Add selected participant to today's meeting."""
         if self._is_meeting_locked():
-            showwarning(self, "Meeting Active", "Cannot modify attendees during a meeting.")
+            showwarning(
+                self, "Meeting Active", "Cannot modify attendees during a meeting."
+            )
             return
         if self._selected_all is None:
             return
-        p = next((x for x in self._all_participants if x.id == self._selected_all), None)
+        p = next(
+            (x for x in self._all_participants if x.id == self._selected_all), None
+        )
         if p is None:
             return
         if any(a.id == p.id for a in self._attendees):
@@ -260,8 +344,11 @@ class ParticipantsTab(ctk.CTkFrame):
         self._render_meeting()
 
     def _remove_from_meeting(self) -> None:
+        """Remove selected participant from today's meeting."""
         if self._is_meeting_locked():
-            showwarning(self, "Meeting Active", "Cannot modify attendees during a meeting.")
+            showwarning(
+                self, "Meeting Active", "Cannot modify attendees during a meeting."
+            )
             return
         if self._selected_mtg is None:
             return
@@ -271,8 +358,11 @@ class ParticipantsTab(ctk.CTkFrame):
         self._render_meeting()
 
     def _add_all_to_meeting(self) -> None:
+        """Add all participants not already in meeting to today's meeting."""
         if self._is_meeting_locked():
-            showwarning(self, "Meeting Active", "Cannot modify attendees during a meeting.")
+            showwarning(
+                self, "Meeting Active", "Cannot modify attendees during a meeting."
+            )
             return
         existing_ids = {a.id for a in self._attendees}
         added = 0
@@ -284,8 +374,11 @@ class ParticipantsTab(ctk.CTkFrame):
         self._render_meeting()
 
     def _clear_meeting(self) -> None:
+        """Remove all participants from today's meeting."""
         if self._is_meeting_locked():
-            showwarning(self, "Meeting Active", "Cannot modify attendees during a meeting.")
+            showwarning(
+                self, "Meeting Active", "Cannot modify attendees during a meeting."
+            )
             return
         self._attendees = []
         self._selected_mtg = None
@@ -295,8 +388,11 @@ class ParticipantsTab(ctk.CTkFrame):
     # ── Config ────────────────────────────────────────────────────────────────
 
     def _save_config(self) -> None:
+        """Save meeting name, duration, and bell settings to database."""
         if self._is_meeting_locked():
-            showwarning(self, "Meeting Active", "Cannot change duration during a meeting.")
+            showwarning(
+                self, "Meeting Active", "Cannot change duration during a meeting."
+            )
             return
         try:
             val = int(self._entry_duration.get())
@@ -313,30 +409,38 @@ class ParticipantsTab(ctk.CTkFrame):
         showinfo(self, "Saved", f"Config saved: '{name}', {val} min.")
 
     def _on_bell_toggle(self) -> None:
+        """Enable/disable the bell volume slider when checkbox is toggled."""
         enabled = self._bell_var.get()
         self._bell_slider.configure(state="normal" if enabled else "disabled")
 
     def _on_volume_change(self, value) -> None:
+        """Update volume percentage label when slider changes."""
         pct = int(float(value))
         self._bell_volume_lbl.configure(text=f"{pct}%")
 
     def _test_bell(self) -> None:
+        """Play bell sound at current volume for testing."""
         play_bell(int(self._bell_volume_var.get()))
 
     # ── CRUD dialogs ──────────────────────────────────────────────────────────
 
     def _open_add_dialog(self) -> None:
+        """Open dialog to add a new participant."""
         self._participant_dialog("Add Participant", None)
 
     def _open_edit_dialog(self) -> None:
+        """Open dialog to edit selected participant."""
         if self._selected_all is None:
             showinfo(self, "Select", "Select a participant to edit.")
             return
-        p = next((x for x in self._all_participants if x.id == self._selected_all), None)
+        p = next(
+            (x for x in self._all_participants if x.id == self._selected_all), None
+        )
         if p:
             self._participant_dialog("Edit Participant", p)
 
     def _participant_dialog(self, title: str, participant) -> None:
+        """Open modal dialog to add or edit a participant."""
         dialog = ctk.CTkToplevel(self)
         dialog.title(title)
         dialog.geometry("400x360")
@@ -358,32 +462,54 @@ class ParticipantsTab(ctk.CTkFrame):
             return entry
 
         p = participant
-        entry_name    = _field(0, "Name *",       p.name             if p else "", "Alex Sanchez")
-        entry_jira_id = _field(1, "Jira ID",      p.jira_account_id  if p else "", "712020:xxxx…")
-        entry_avatar  = _field(2, "Avatar URL",   p.avatar_path      if p else "", "https://…/avatar.png  (or local path)")
+        entry_name = _field(0, "Name *", p.name if p else "", "Alex Sanchez")
+        entry_jira_id = _field(
+            1, "Jira ID", p.jira_account_id if p else "", "712020:xxxx…"
+        )
+        entry_avatar = _field(
+            2,
+            "Avatar URL",
+            p.avatar_path if p else "",
+            "https://…/avatar.png  (or local path)",
+        )
 
         jefote_var = ctk.BooleanVar(value=p.is_jefote if p else False)
         jefote_frame = ctk.CTkFrame(dialog, fg_color="transparent")
         jefote_frame.pack(anchor="w", padx=20, pady=(8, 0))
-        ctk.CTkCheckBox(jefote_frame, text="Is Jefote / Manager", variable=jefote_var).pack(side="left")
+        ctk.CTkCheckBox(
+            jefote_frame, text="Is Jefote / Manager", variable=jefote_var
+        ).pack(side="left")
 
-        ctk.CTkLabel(dialog, text="* Name is required. Jira ID links to Jira tasks.",
-                     font=("",10), text_color="gray").pack(anchor="w", padx=20, pady=(4,0))
+        ctk.CTkLabel(
+            dialog,
+            text="* Name is required. Jira ID links to Jira tasks.",
+            font=("", 10),
+            text_color="gray",
+        ).pack(anchor="w", padx=20, pady=(4, 0))
 
         def _save():
             name = entry_name.get().strip()
             if not name:
                 showerror(dialog, "Error", "Name cannot be empty.")
                 return
-            jira_id    = entry_jira_id.get().strip()
+            jira_id = entry_jira_id.get().strip()
             avatar_val = entry_avatar.get().strip()
             try:
                 if participant:
-                    db.update_participant(participant.id, name, jefote_var.get(),
-                                          jira_account_id=jira_id, avatar_path=avatar_val)
+                    db.update_participant(
+                        participant.id,
+                        name,
+                        jefote_var.get(),
+                        jira_account_id=jira_id,
+                        avatar_path=avatar_val,
+                    )
                 else:
-                    db.add_participant(name, jefote_var.get(),
-                                       jira_account_id=jira_id, avatar_path=avatar_val)
+                    db.add_participant(
+                        name,
+                        jefote_var.get(),
+                        jira_account_id=jira_id,
+                        avatar_path=avatar_val,
+                    )
             except Exception as e:
                 showerror(dialog, "Error", str(e))
                 return
@@ -393,18 +519,31 @@ class ParticipantsTab(ctk.CTkFrame):
 
         btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_row.pack(pady=(12, 0))
-        ctk.CTkButton(btn_row, text="Save", width=100,
-                      fg_color="#1a7a4a", hover_color="#145c36",
-                      command=_save).pack(side="left", padx=6)
-        ctk.CTkButton(btn_row, text="Cancel", width=100,
-                      fg_color="#555", hover_color="#333",
-                      command=dialog.destroy).pack(side="left", padx=6)
+        ctk.CTkButton(
+            btn_row,
+            text="Save",
+            width=100,
+            fg_color="#1a7a4a",
+            hover_color="#145c36",
+            command=_save,
+        ).pack(side="left", padx=6)
+        ctk.CTkButton(
+            btn_row,
+            text="Cancel",
+            width=100,
+            fg_color="#555",
+            hover_color="#333",
+            command=dialog.destroy,
+        ).pack(side="left", padx=6)
 
     def _delete_participant(self) -> None:
+        """Delete selected participant after confirmation."""
         if self._selected_all is None:
             showinfo(self, "Select", "Select a participant to delete.")
             return
-        p = next((x for x in self._all_participants if x.id == self._selected_all), None)
+        p = next(
+            (x for x in self._all_participants if x.id == self._selected_all), None
+        )
         if p is None:
             return
         if not askyesno(self, "Confirm", f"Delete '{p.name}'?"):

@@ -1,13 +1,18 @@
+"""Stats tab — display meeting duration history and per-participant speaking time."""
+
 import math
+
 import customtkinter as ctk
 import mplcursors
-from app.ui.dialogs import showinfo, showwarning, showerror, askyesno
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
 from app import db
+from app.ui.dialogs import askyesno, showerror, showinfo, showwarning
 
 
 def _secs_to_mmss(seconds: float) -> str:
+    """Convert seconds to mm:ss format."""
     seconds = int(round(seconds))
     m, s = divmod(abs(seconds), 60)
     return f"{m}:{s:02d}"
@@ -19,6 +24,7 @@ class StatsTab(ctk.CTkFrame):
         self._build_ui()
 
     def _build_ui(self) -> None:
+        """Build 2-row layout: top chart (duration history), bottom chart (participant times)."""
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
@@ -42,16 +48,25 @@ class StatsTab(ctk.CTkFrame):
 
         selector_row = ctk.CTkFrame(bottom_frame, fg_color="transparent")
         selector_row.grid(row=0, column=0, padx=8, pady=(12, 12), sticky="ew")
-        ctk.CTkLabel(selector_row, text="Session:", font=("", 12)).pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(selector_row, text="Session:", font=("", 12)).pack(
+            side="left", padx=(0, 8)
+        )
         self._session_var = ctk.StringVar()
         self._session_menu = ctk.CTkOptionMenu(
-            selector_row, variable=self._session_var, values=["—"], command=self._on_session_select
+            selector_row,
+            variable=self._session_var,
+            values=["—"],
+            command=self._on_session_select,
         )
         self._session_menu.pack(side="left")
 
         self._btn_delete_session = ctk.CTkButton(
-            selector_row, text="🗑 Delete", width=90, height=28,
-            fg_color="#c0392b", hover_color="#922b21",
+            selector_row,
+            text="🗑 Delete",
+            width=90,
+            height=28,
+            fg_color="#c0392b",
+            hover_color="#922b21",
             command=self._delete_selected_session,
         )
         self._btn_delete_session.pack(side="left", padx=(12, 0))
@@ -66,6 +81,7 @@ class StatsTab(ctk.CTkFrame):
         self._cursor_bot = None
 
     def load_data(self) -> None:
+        """Load all sessions from database and refresh both charts."""
         self._sessions = db.get_sessions()
         self._render_top_chart()
         self._populate_session_selector()
@@ -93,25 +109,43 @@ class StatsTab(ctk.CTkFrame):
     # ── Top chart ─────────────────────────────────────────────────────────────
 
     def _render_top_chart(self) -> None:
+        """Render meeting duration history (planned vs actual) line chart."""
         ax = self._ax_top
         ax.clear()
         ax.set_facecolor("#1a1a2e")
         self._fig_top.set_facecolor("#1a1a2e")
 
         if not self._sessions:
-            ax.text(0.5, 0.5, "No sessions yet", ha="center", va="center",
-                    color="gray", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No sessions yet",
+                ha="center",
+                va="center",
+                color="gray",
+                transform=ax.transAxes,
+            )
             self._canvas_top.draw()
             return
 
         sessions_rev = list(reversed(self._sessions))
-        labels = [s.date for s in sessions_rev]       # "YYYY-MM-DD HH:MM" or "YYYY-MM-DD"
-        planned = [s.planned_duration for s in sessions_rev]   # seconds
-        actual  = [s.actual_duration  for s in sessions_rev]   # seconds
+        labels = [s.date for s in sessions_rev]  # "YYYY-MM-DD HH:MM" or "YYYY-MM-DD"
+        planned = [s.planned_duration for s in sessions_rev]  # seconds
+        actual = [s.actual_duration for s in sessions_rev]  # seconds
 
         x = list(range(len(labels)))
-        line1, = ax.plot(x, planned, "o-", color="#3498db", label="Planned", linewidth=2, markersize=5)
-        line2, = ax.plot(x, actual,  "s-", color="#e74c3c", label="Actual",  linewidth=2, markersize=5)
+        (line1,) = ax.plot(
+            x,
+            planned,
+            "o-",
+            color="#3498db",
+            label="Planned",
+            linewidth=2,
+            markersize=5,
+        )
+        (line2,) = ax.plot(
+            x, actual, "s-", color="#e74c3c", label="Actual", linewidth=2, markersize=5
+        )
 
         ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=7, color="white")
@@ -128,6 +162,7 @@ class StatsTab(ctk.CTkFrame):
         if self._cursor_top:
             self._cursor_top.remove()
         self._cursor_top = mplcursors.cursor([line1, line2], hover=True)
+
         @self._cursor_top.connect("add")
         def _tip(sel):
             val = sel.target[1]
@@ -142,21 +177,27 @@ class StatsTab(ctk.CTkFrame):
     # ── Bottom chart ──────────────────────────────────────────────────────────
 
     def _populate_session_selector(self) -> None:
+        """Populate session dropdown menu and render first session's chart."""
         if not self._sessions:
             self._session_menu.configure(values=["—"])
             self._session_var.set("—")
             self._render_bottom_chart(-1)
             return
-        labels = [f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions]
+        labels = [
+            f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions
+        ]
         self._session_menu.configure(values=labels)
         self._session_var.set(labels[0])
         self._render_bottom_chart(0)
 
     def _delete_selected_session(self) -> None:
+        """Delete selected session after confirmation."""
         value = self._session_var.get()
         if value == "—" or not self._sessions:
             return
-        labels = [f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions]
+        labels = [
+            f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions
+        ]
         if value not in labels:
             return
         idx = labels.index(value)
@@ -167,19 +208,30 @@ class StatsTab(ctk.CTkFrame):
         self.load_data()
 
     def _on_session_select(self, value: str) -> None:
-        labels = [f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions]
+        """Handle session selection and update bottom chart."""
+        labels = [
+            f"{s.date}  ({_secs_to_mmss(s.actual_duration)})" for s in self._sessions
+        ]
         if value in labels:
             self._render_bottom_chart(labels.index(value))
 
     def _render_bottom_chart(self, idx: int) -> None:
+        """Render per-participant speaking time bar chart for selected session."""
         ax = self._ax_bot
         ax.clear()
         ax.set_facecolor("#1a1a2e")
         self._fig_bot.set_facecolor("#1a1a2e")
 
         if not self._sessions or idx < 0:
-            ax.text(0.5, 0.5, "No sessions yet", ha="center", va="center",
-                    color="gray", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No sessions yet",
+                ha="center",
+                va="center",
+                color="gray",
+                transform=ax.transAxes,
+            )
             self._canvas_bot.draw()
             return
 
@@ -189,16 +241,31 @@ class StatsTab(ctk.CTkFrame):
             self._canvas_bot.draw()
             return
 
-        names     = [p["participant_name"] + (" [J]" if p["is_jefote"] else "") for p in participants]
-        allocated = [p["allocated_time"] for p in participants]   # seconds
-        actual    = [p["actual_time"]    for p in participants]   # seconds
+        names = [
+            p["participant_name"] + (" [J]" if p["is_jefote"] else "")
+            for p in participants
+        ]
+        allocated = [p["allocated_time"] for p in participants]  # seconds
+        actual = [p["actual_time"] for p in participants]  # seconds
 
         x = list(range(len(names)))
         bar_w = 0.35
-        bars1 = ax.bar([i - bar_w / 2 for i in x], allocated, bar_w,
-                       label="Allocated", color="#3498db", alpha=0.85)
-        bars2 = ax.bar([i + bar_w / 2 for i in x], actual, bar_w,
-                       label="Actual", color="#e74c3c", alpha=0.85)
+        bars1 = ax.bar(
+            [i - bar_w / 2 for i in x],
+            allocated,
+            bar_w,
+            label="Allocated",
+            color="#3498db",
+            alpha=0.85,
+        )
+        bars2 = ax.bar(
+            [i + bar_w / 2 for i in x],
+            actual,
+            bar_w,
+            label="Actual",
+            color="#e74c3c",
+            alpha=0.85,
+        )
 
         ax.set_xticks(x)
         ax.set_xticklabels(names, rotation=30, ha="right", fontsize=8, color="white")
@@ -215,6 +282,7 @@ class StatsTab(ctk.CTkFrame):
         if self._cursor_bot:
             self._cursor_bot.remove()
         self._cursor_bot = mplcursors.cursor([bars1, bars2], hover=True)
+
         @self._cursor_bot.connect("add")
         def _tip(sel):
             bar_idx = sel.index
