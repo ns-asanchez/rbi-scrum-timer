@@ -325,18 +325,41 @@ def fetch_sprint_info(
                     except Exception:
                         pass
 
+                # Fetch sprint report (Insights) from greenhopper
+                report_completed = report_remaining = report_removed = 0
+                report_sp_completed = report_sp_remaining = 0
+                try:
+                    report = _request(
+                        f"/rest/greenhopper/1.0/rapid/charts/sprintreport"
+                        f"?rapidViewId={board_id}&sprintId={sprint_id}"
+                    )
+                    contents = report.get("contents", {})
+                    report_completed   = len(contents.get("completedIssues", []))
+                    report_remaining   = len(contents.get("issuesNotCompletedInCurrentSprint", []))
+                    report_removed     = len(contents.get("puntedIssues", []))
+                    report_sp_completed = int(contents.get("completedIssuesEstimateSum", {}).get("value") or 0)
+                    report_sp_remaining = int(contents.get("issuesNotCompletedEstimateSum", {}).get("value") or 0)
+                except Exception:
+                    pass
+
                 sprints.append({
-                    "name":       name,
-                    "startDate":  s.get("startDate", "")[:10] if s.get("startDate") else "—",
-                    "endDate":    s.get("endDate", "")[:10] if s.get("endDate") else "—",
-                    "goal":       s.get("goal", "") or "—",
-                    "daysLeft":   days_left,
-                    "total":      total,
-                    "done":       done_issues,
-                    "inProgress": inprog,
-                    "todo":       todo,
-                    "spDone":     sp_done,
-                    "spTotal":    sp_total,
+                    "name":              name,
+                    "startDate":         s.get("startDate", "")[:10] if s.get("startDate") else "—",
+                    "endDate":           s.get("endDate", "")[:10] if s.get("endDate") else "—",
+                    "goal":              s.get("goal", "") or "—",
+                    "daysLeft":          days_left,
+                    "total":             total,
+                    "done":              done_issues,
+                    "inProgress":        inprog,
+                    "todo":              todo,
+                    "spDone":            sp_done,
+                    "spTotal":           sp_total,
+                    # Insights (sprint report)
+                    "reportCompleted":   report_completed,
+                    "reportRemaining":   report_remaining,
+                    "reportRemoved":     report_removed,
+                    "reportSpCompleted": report_sp_completed,
+                    "reportSpRemaining": report_sp_remaining,
                 })
             on_done(sprints)
         except Exception as e:

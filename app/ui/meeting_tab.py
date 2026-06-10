@@ -781,7 +781,7 @@ class MeetingTab(ctk.CTkFrame):
         popup.lift()
         popup.focus_force()
         popup.update_idletasks()
-        pw, ph = 580, 300 + len(sprints) * 10
+        pw, ph = 580, 480 + len(sprints) * 10
         px = root.winfo_rootx() + root.winfo_width() // 2 - pw // 2
         py = root.winfo_rooty() + root.winfo_height() // 2 - ph // 2
         popup.geometry(f"{pw}x{ph}+{px}+{py}")
@@ -838,8 +838,30 @@ class MeetingTab(ctk.CTkFrame):
                 ctk.CTkLabel(cell, text=label, font=("", 10),
                              text_color="gray").pack()
 
+        # ── Insights section ────────────────────────────────────────────────
+        ins_box = ctk.CTkFrame(popup, fg_color=("gray88", "gray20"), corner_radius=10)
+        ins_box.pack(fill="x", padx=16, pady=(2, 6))
+
+        ctk.CTkLabel(ins_box, text="📊  Sprint Report",
+                     font=("", 14, "bold")).pack(anchor="w", padx=12, pady=(10, 6))
+
+        for sprint in sprints:
+            ins_row = ctk.CTkFrame(ins_box, fg_color="transparent")
+            ins_row.pack(fill="x", padx=12, pady=(0, 10))
+            for label, value, color in [
+                ("✅ Completed",  f"{sprint['reportCompleted']} issues / {sprint['reportSpCompleted']} SP", "#27ae60"),
+                ("🔄 Remaining",  f"{sprint['reportRemaining']} issues / {sprint['reportSpRemaining']} SP", "#1f6aa5"),
+                ("🗑 Removed",    f"{sprint['reportRemoved']} issues", "#e67e22"),
+            ]:
+                cell = ctk.CTkFrame(ins_row, fg_color="transparent")
+                cell.pack(side="left", expand=True, fill="x", padx=4)
+                ctk.CTkLabel(cell, text=value, font=("", 15, "bold"),
+                             text_color=color).pack()
+                ctk.CTkLabel(cell, text=label, font=("", 10),
+                             text_color="gray").pack()
+
         ctk.CTkButton(popup, text="✕  Close", width=120, height=34,
-                      command=popup.destroy).pack(pady=(10, 20))
+                      command=popup.destroy).pack(pady=(6, 20))
 
     def _load_jira_for_current(self) -> None:
         """Fetch Jira tasks for current speaker (open + closed in parallel)."""
