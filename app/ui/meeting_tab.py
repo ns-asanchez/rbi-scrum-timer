@@ -273,12 +273,21 @@ class MeetingTab(ctk.CTkFrame):
         jira_open.rowconfigure(1, weight=1)
 
         self._jira_header = ctk.CTkLabel(
-            jira_open, text="🔵  Open Tasks", font=("", 13, "bold")
+            jira_open, text="⚡  Active", font=("", 13, "bold")
         )
         self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
 
         # font_btns dict initialised here so col3 can populate it
         self._font_btns = {}
+
+        # Sprint info button in header
+        self._btn_sprint_info = ctk.CTkButton(
+            jira_open, text="ℹ️", width=28, height=28,
+            fg_color="transparent", hover_color=("gray80", "gray30"),
+            font=("", 14),
+            command=self._show_sprint_info,
+        )
+        self._btn_sprint_info.grid(row=0, column=0, padx=(0, 10), pady=(12, 4), sticky="e")
 
         self._list_jira = ctk.CTkScrollableFrame(jira_open)
         self._list_jira.grid(row=1, column=0, padx=8, pady=(0, 12), sticky="nsew")
@@ -298,7 +307,7 @@ class MeetingTab(ctk.CTkFrame):
         header_row3.columnconfigure(0, weight=1)
 
         self._jira_closed_header = ctk.CTkLabel(
-            header_row3, text="✅  Closed Tasks", font=("", 13, "bold")
+            header_row3, text="✅  Done", font=("", 13, "bold")
         )
         self._jira_closed_header.grid(row=0, column=0, sticky="w")
 
@@ -689,8 +698,8 @@ class MeetingTab(ctk.CTkFrame):
         is_jefote = participant.is_jefote
         board_url = os.environ.get("JIRA_BOARD_URL", "")
 
-        self._jira_header.configure(text=f"🔵  {name} — Open")
-        self._jira_closed_header.configure(text=f"✅  {name} — Closed")
+        self._jira_header.configure(text=f"⚡  {name} — Active")
+        self._jira_closed_header.configure(text=f"✅  {name} — Done")
         self._clear_jira_list()
 
         loading = ctk.CTkLabel(self._list_jira, text="⏳ Loading…", font=("", 11), text_color="gray")
@@ -729,18 +738,94 @@ class MeetingTab(ctk.CTkFrame):
             is_jefote=is_jefote,
         )
 
+    def _show_sprint_info(self) -> None:
+        """Fetch and display active sprint info for the configured board."""
+        board_url = os.environ.get("JIRA_BOARD_URL", "")
+        if not board_url:
+            from app.ui.dialogs import showwarning
+            showwarning(self, "No board configured",
+                        "Set a Board Filter URL in Settings first.")
+            return
+
+        self._btn_sprint_info.configure(state="disabled", text="⏳")
+
+        def _on_done(sprints):
+            self.after(0, lambda: self._render_sprint_info(sprints))
+
+        def _on_error(err):
+            self.after(0, lambda: (
+                self._btn_sprint_info.configure(state="normal", text="ℹ️"),
+                __import__("app.ui.dialogs", fromlist=["showerror"]).showerror(
+                    self, "Sprint info error", err[:120]
+                )
+            ))
+
+        fetch_sprint_info(board_url, on_done=_on_done, on_error=_on_error)
+
+    def _render_sprint_info(self, sprints: list[dict]) -> None:
+        """Show sprint info as an in-window overlay."""
+        self._btn_sprint_info.configure(state="normal", text="ℹ️")
+        if not sprints:
+            from app.ui.dialogs import showinfo
+            showinfo(self, "Sprint info", "No active sprints found for this board.")
+            return
+
+        root = self.winfo_toplevel()
+        done_var = ctk.BooleanVar(master=root, value=False)
+
+        backdrop = ctk.CTkFrame(root, corner_radius=0)
+        backdrop.configure(fg_color="#00000099")
+        backdrop.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        card_h = min(100 + len(sprints) * 130, 500)
+        card = ctk.CTkFrame(backdrop, fg_color=("gray92", "gray17"),
+                            corner_radius=12, width=520, height=card_h)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+        card.pack_propagate(False)
+
+        ctk.CTkLabel(card, text="🏃  Active Sprint Info",
+                     font=("", 16, "bold")).pack(pady=(16, 4))
+
+        scroll = ctk.CTkScrollableFrame(card, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=16, pady=(4, 8))
+
+        for sprint in sprints:
+            box = ctk.CTkFrame(scroll, fg_color=("gray86", "gray22"), corner_radius=8)
+            box.pack(fill="x", pady=6)
+            ctk.CTkLabel(box, text=sprint["name"], font=("", 14, "bold"),
+                         anchor="w").pack(anchor="w", padx=12, pady=(10, 2))
+            info_lines = [
+                f"📅  {sprint['startDate']}  →  {sprint['endDate']}",
+            ]
+            if sprint["goal"] and sprint["goal"] != "—":
+                info_lines.append(f"🎯  {sprint['goal'][:80]}")
+            for line in info_lines:
+                ctk.CTkLabel(box, text=line, font=("", 12), text_color="gray",
+                             anchor="w", justify="left", wraplength=460).pack(
+                    anchor="w", padx=12, pady=2
+                )
+            ctk.CTkFrame(box, height=6, fg_color="transparent").pack()
+
+        def _close():
+            backdrop.destroy()
+            done_var.set(True)
+
+        ctk.CTkButton(card, text="Close", width=100, command=_close).pack(pady=(0, 14))
+        backdrop.lift()
+        root.wait_variable(done_var)
+
     def _load_jira_for_current(self) -> None:
         """Fetch Jira tasks for current speaker (open + closed in parallel)."""
         current = self._timer.current
         if current is None:
-            self._jira_header.configure(text="🔵  Open Tasks")
-            self._jira_closed_header.configure(text="✅  Closed Tasks")
+            self._jira_header.configure(text="⚡  Active")
+            self._jira_closed_header.configure(text="✅  Done")
             self._clear_jira_list()
             return
 
         name = current.participant.name
-        self._jira_header.configure(text=f"🔵  {name} — Open")
-        self._jira_closed_header.configure(text=f"✅  {name} — Closed")
+        self._jira_header.configure(text=f"⚡  {name} — Active")
+        self._jira_closed_header.configure(text=f"✅  {name} — Done")
         self._clear_jira_list()
 
         # Show loading indicator

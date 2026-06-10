@@ -8,7 +8,7 @@ from app import db
 from app.bell import play_bell
 from app.meeting import MeetingTimer
 from app.models import MeetingConfig, MeetingState
-from app.ui.dialogs import showinfo, showwarning
+from app.ui.dialogs import askyesno, showinfo, showwarning
 from app.ui.help_tab import HelpTab
 from app.ui.meeting_tab import MeetingTab
 from app.ui.participants_tab import ParticipantsTab
@@ -33,6 +33,7 @@ class AppWindow(ctk.CTk):
 
         self._config: MeetingConfig = db.get_config()
         self._attendees: list = []
+        self._session_saved: bool = False
         self.title(f"RBI Scrum Timer  —  {self._config.meeting_name}")
 
         self._timer = MeetingTimer(
@@ -105,6 +106,7 @@ class AppWindow(ctk.CTk):
     def _update_attendees(self, attendees: list) -> None:
         """Refresh meeting tab when attendee list changes."""
         self._attendees = attendees
+        self._session_saved = False  # new meeting setup
         self._meeting_tab.refresh_state()
 
     def _update_config(
@@ -155,7 +157,7 @@ class AppWindow(ctk.CTk):
             self._stats_tab.load_data()
 
     def _on_close(self) -> None:
-        """Prevent closing while meeting is active."""
+        """Warn if meeting is active or finished session has not been saved."""
         if self._timer.state in (MeetingState.RUNNING, MeetingState.PAUSED):
             showwarning(
                 self,
@@ -163,6 +165,13 @@ class AppWindow(ctk.CTk):
                 "The meeting is still in progress.\nPlease stop or finish it before closing.",
             )
             return
+        if self._timer.state == MeetingState.FINISHED and not self._session_saved:
+            if not askyesno(
+                self,
+                "Unsaved session",
+                "The meeting has finished but the session has not been saved.\nClose anyway and lose the data?",
+            ):
+                return
         self.destroy()
 
     def _save_session(self) -> None:
@@ -174,6 +183,7 @@ class AppWindow(ctk.CTk):
         actual = self._timer.meeting_elapsed
         payload = self._timer.build_session_payload()
         db.save_session(today, planned, actual, payload)
+        self._session_saved = True
         # Disable Save button to prevent duplicate saves
         self._meeting_tab._btn_save.configure(state="disabled")
         showinfo(self, "Saved", f"Session saved for {today}.")

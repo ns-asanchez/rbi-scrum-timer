@@ -272,6 +272,39 @@ def fetch_closed_issues_for_participant(
     threading.Thread(target=_run, daemon=True).start()
 
 
+
+def fetch_sprint_info(
+    board_url: str,
+    on_done: "Callable[[list[dict]], None]",
+    on_error: "Callable[[str], None]",
+) -> None:
+    """Fetch active sprint(s) info for the board asynchronously."""
+    board_id = parse_board_id(board_url) if board_url else None
+    if not board_id:
+        on_error("No board URL configured in Settings.")
+        return
+
+    def _run():
+        try:
+            data = _request(
+                f"/rest/agile/1.0/board/{board_id}/sprint",
+                params={"state": "active"},
+            )
+            sprints = []
+            for s in data.get("values", []):
+                sprints.append({
+                    "name":      s.get("name", ""),
+                    "state":     s.get("state", ""),
+                    "startDate": s.get("startDate", "")[:10] if s.get("startDate") else "—",
+                    "endDate":   s.get("endDate", "")[:10] if s.get("endDate") else "—",
+                    "goal":      s.get("goal", "") or "—",
+                })
+            on_done(sprints)
+        except Exception as e:
+            on_error(str(e))
+
+    threading.Thread(target=_run, daemon=True).start()
+
 def fetch_issues_for_participant(
     account_id: str,
     board_url: str,
