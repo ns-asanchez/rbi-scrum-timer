@@ -830,9 +830,9 @@ class MeetingTab(ctk.CTkFrame):
             key_btn = ctk.CTkButton(
                 top,
                 text=issue["key"],
-                font=("", 12, "bold"),
-                width=90,
-                height=24,
+                font=("", 20, "bold"),
+                width=120,
+                height=28,
                 fg_color="transparent",
                 text_color=("#1f6aa5", "#4a9ede"),
                 hover=False,
@@ -849,7 +849,7 @@ class MeetingTab(ctk.CTkFrame):
             status_lbl = ctk.CTkLabel(
                 top,
                 text=f" {status} ",
-                font=("", 10),
+                font=("", 13, "bold"),
                 text_color="white",
                 fg_color=status_color,
                 corner_radius=4,
@@ -862,14 +862,14 @@ class MeetingTab(ctk.CTkFrame):
                 if issue["points"] is not None
                 else "SP: —"
             )
-            sp_lbl = ctk.CTkLabel(top, text=sp_text, font=("", 10), text_color="gray")
+            sp_lbl = ctk.CTkLabel(top, text=sp_text, font=("", 12), text_color="gray")
             sp_lbl.pack(side="right", padx=(0, 8))
 
             # Summary — wraplength tracks card width dynamically
             summary_lbl = ctk.CTkLabel(
                 card,
                 text=issue["summary"],
-                font=("", 16),
+                font=("", 18),
                 anchor="w",
                 justify="left",
                 wraplength=400,
@@ -900,9 +900,9 @@ class MeetingTab(ctk.CTkFrame):
                 ctk.CTkButton(
                     top,
                     text=issue["key"],
-                    font=("", 12, "bold"),
-                    width=90,
-                    height=24,
+                    font=("", 20, "bold"),
+                    width=120,
+                    height=28,
                     fg_color="transparent",
                     text_color=("gray50", "gray50"),
                     hover=False,
@@ -920,7 +920,7 @@ class MeetingTab(ctk.CTkFrame):
                 ctk.CTkLabel(
                     top,
                     text=f" {issue['status']} ",
-                    font=("", 10),
+                    font=("", 13, "bold"),
                     text_color="white",
                     fg_color=_badge_color,
                     corner_radius=4,
@@ -940,7 +940,7 @@ class MeetingTab(ctk.CTkFrame):
                 summary_lbl = ctk.CTkLabel(
                     card,
                     text=issue["summary"],
-                    font=("", 16),
+                    font=("", 18),
                     anchor="w",
                     justify="left",
                     wraplength=400,
