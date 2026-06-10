@@ -33,7 +33,7 @@ HELP_CONTENT = [
             ),
             (
                 "🏃  Sprint Info",
-                "Opens a popup with the current RBI sprint details: name, dates, days remaining, sprint goal (clickable if it's a URL), and issue stats — Done / In Progress / To Do / Story Points done.",
+                "Opens a popup with two sections. 🏃 Current Sprint: name, dates, days remaining, sprint goal (clickable URL), and issue stats filtered by polaris-squad — Done / In Progress / To Do / SP Done. Hover any number to see a tooltip explaining what it counts. 📊 Sprint Report: Completed / Remaining / Removed issues and SP for the same filter. The label filter is extracted automatically from the Board Filter URL in Settings.",
             ),
             (
                 "Status dot ●",
