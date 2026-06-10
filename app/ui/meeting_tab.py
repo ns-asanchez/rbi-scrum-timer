@@ -591,6 +591,13 @@ class MeetingTab(ctk.CTkFrame):
         row.columnconfigure(1, weight=1)
         row.columnconfigure(2, weight=0)
 
+        # Click on any row to load that participant's Jira tasks
+        def _on_row_click(event, _mp=mp):
+            """Load Jira tasks for the clicked participant."""
+            self._load_jira_for_participant(_mp.participant)
+
+        row.bind("<Button-1>", _on_row_click)
+
         p = mp.participant
         indicator = "▶ " if is_current else ("✓ " if mp.done else "  ")
         txt_color = "gray" if mp.done else ("white" if is_current else None)
@@ -636,7 +643,58 @@ class MeetingTab(ctk.CTkFrame):
             text_color="gray" if mp.done else None,
         ).grid(row=0, column=2, padx=(4, 8), pady=4, sticky="e")
 
+        # Propagate click to all child widgets
+        for child in row.winfo_children():
+            child.bind("<Button-1>", _on_row_click)
+
     # ── Jira Panel ────────────────────────────────────────────────────────────
+
+    def _load_jira_for_participant(self, participant) -> None:
+        """Load Jira tasks for a specific participant (e.g. when clicked in the list)."""
+        name = participant.name
+        account_id = participant.jira_account_id
+        is_jefote = participant.is_jefote
+        board_url = os.environ.get("JIRA_BOARD_URL", "")
+
+        self._jira_header.configure(text=f"🔵  {name} — Open")
+        self._jira_closed_header.configure(text=f"✅  {name} — Closed")
+        self._clear_jira_list()
+
+        loading = ctk.CTkLabel(self._list_jira, text="⏳ Loading…", font=("", 11), text_color="gray")
+        loading.pack(padx=8, pady=8, anchor="w")
+
+        self._jira_fetch_results = {}
+
+        def _on_open(issues):
+            """Handle open issues response."""
+            self._jira_fetch_results["open"] = issues
+            if "closed" in self._jira_fetch_results:
+                self.after(0, lambda: self._render_jira_issues(
+                    self._jira_fetch_results["open"],
+                    self._jira_fetch_results["closed"],
+                ))
+
+        def _on_closed(issues):
+            """Handle closed issues response."""
+            self._jira_fetch_results["closed"] = issues
+            if "open" in self._jira_fetch_results:
+                self.after(0, lambda: self._render_jira_issues(
+                    self._jira_fetch_results["open"],
+                    self._jira_fetch_results["closed"],
+                ))
+
+        fetch_issues_for_participant(
+            account_id, board_url=board_url,
+            on_done=_on_open,
+            on_error=lambda err: self.after(0, lambda: self._jira_error(err)),
+            is_jefote=is_jefote,
+        )
+        fetch_closed_issues_for_participant(
+            account_id, board_url=board_url,
+            on_done=_on_closed,
+            on_error=lambda err: self._jira_fetch_results.setdefault("closed", []),
+            is_jefote=is_jefote,
+        )
 
     def _load_jira_for_current(self) -> None:
         """Fetch Jira tasks for current speaker (open + closed in parallel)."""
