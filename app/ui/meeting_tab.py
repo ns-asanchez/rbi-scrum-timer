@@ -266,35 +266,19 @@ class MeetingTab(ctk.CTkFrame):
             )
 
     def _build_col2(self) -> None:
-        """Column 2: Jira Open Tasks with font sizer in header."""
+        """Column 2: Jira Open Tasks."""
         jira_open = ctk.CTkFrame(self)
         jira_open.grid(row=0, column=2, padx=4, pady=10, sticky="nsew")
         jira_open.columnconfigure(0, weight=1)
         jira_open.rowconfigure(1, weight=1)
 
-        # Header row: title + font sizer buttons
-        header_row = ctk.CTkFrame(jira_open, fg_color="transparent")
-        header_row.grid(row=0, column=0, padx=8, pady=(12, 4), sticky="ew")
-        header_row.columnconfigure(0, weight=1)
-
         self._jira_header = ctk.CTkLabel(
-            header_row, text="🔵  Open Tasks", font=("", 13, "bold")
+            jira_open, text="🔵  Open Tasks", font=("", 13, "bold")
         )
-        self._jira_header.grid(row=0, column=0, sticky="w")
+        self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
 
-        # Font sizer: A- / A / A+
-        sizer = ctk.CTkFrame(header_row, fg_color="transparent")
-        sizer.grid(row=0, column=1, sticky="e")
+        # font_btns dict initialised here so col3 can populate it
         self._font_btns = {}
-        for label, size in [("A−", 12), ("A", 18), ("A+", 24)]:
-            btn = ctk.CTkButton(
-                sizer, text=label, width=32, height=24, font=("", 10),
-                fg_color="#1f6aa5" if size == 18 else "transparent",
-                hover_color=("gray75", "gray35"),
-                command=lambda s=size: self._set_jira_font(s),
-            )
-            btn.pack(side="left", padx=2)
-            self._font_btns[size] = btn
 
         self._list_jira = ctk.CTkScrollableFrame(jira_open)
         self._list_jira.grid(row=1, column=0, padx=8, pady=(0, 12), sticky="nsew")
