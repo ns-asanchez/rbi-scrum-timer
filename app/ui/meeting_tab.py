@@ -273,27 +273,10 @@ class MeetingTab(ctk.CTkFrame):
         jira_open.columnconfigure(0, weight=1)
         jira_open.rowconfigure(1, weight=1)
 
-        # Header row: title left, ℹ️ right
-        header_row2 = ctk.CTkFrame(jira_open, fg_color="transparent")
-        header_row2.grid(row=0, column=0, padx=8, pady=(12, 4), sticky="ew")
-        header_row2.columnconfigure(0, weight=1)
-
         self._jira_header = ctk.CTkLabel(
-            header_row2, text="⚡  Active", font=("", 13, "bold")
+            jira_open, text="⚡  Active", font=("", 13, "bold")
         )
-        self._jira_header.grid(row=0, column=0, sticky="w")
-
-        sprint_info_row = ctk.CTkFrame(header_row2, fg_color="transparent")
-        sprint_info_row.grid(row=0, column=1, sticky="e")
-        ctk.CTkLabel(sprint_info_row, text="Sprint info", font=("", 11),
-                     text_color="gray").pack(side="left", padx=(0, 4))
-        self._btn_sprint_info = ctk.CTkButton(
-            sprint_info_row, text="ℹ️", width=32, height=26,
-            fg_color="transparent", hover_color=("gray80", "gray30"),
-            font=("", 14),
-            command=self._show_sprint_info,
-        )
-        self._btn_sprint_info.pack(side="left")
+        self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
 
         # font_btns dict initialised here so col3 can populate it
         self._font_btns = {}
