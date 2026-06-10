@@ -302,18 +302,34 @@ class MeetingTab(ctk.CTkFrame):
         apply_scroll(self._list_jira)
 
     def _build_col3(self) -> None:
-        """Column 3: Jira Closed Tasks."""
+        """Column 3: Jira Closed Tasks with Font size controls in header."""
         jira_closed = ctk.CTkFrame(self)
         jira_closed.grid(row=0, column=3, padx=(4, 10), pady=10, sticky="nsew")
         jira_closed.columnconfigure(0, weight=1)
         jira_closed.rowconfigure(1, weight=1)
 
+        # Header row: title + "Font size" label + A−/A/A+ buttons
+        header_row3 = ctk.CTkFrame(jira_closed, fg_color="transparent")
+        header_row3.grid(row=0, column=0, padx=8, pady=(12, 4), sticky="ew")
+        header_row3.columnconfigure(0, weight=1)
+
         self._jira_closed_header = ctk.CTkLabel(
-            jira_closed, text="✅  Closed Tasks", font=("", 13, "bold")
+            header_row3, text="✅  Closed Tasks", font=("", 13, "bold")
         )
-        self._jira_closed_header.grid(
-            row=0, column=0, padx=12, pady=(12, 4), sticky="w"
-        )
+        self._jira_closed_header.grid(row=0, column=0, sticky="w")
+
+        sizer3 = ctk.CTkFrame(header_row3, fg_color="transparent")
+        sizer3.grid(row=0, column=1, sticky="e")
+        ctk.CTkLabel(sizer3, text="Font size", font=("", 11, "bold"), text_color="gray").pack(side="left", padx=(0, 4))
+        for label, size in [("A−", 12), ("A", 18), ("A+", 24)]:
+            btn = ctk.CTkButton(
+                sizer3, text=label, width=32, height=24, font=("", 10),
+                fg_color="#1f6aa5" if size == 18 else "transparent",
+                hover_color=("gray75", "gray35"),
+                command=lambda s=size: self._set_jira_font(s),
+            )
+            btn.pack(side="left", padx=2)
+            self._font_btns[size] = btn  # same dict, same buttons
 
         self._list_jira_closed = ctk.CTkScrollableFrame(jira_closed)
         self._list_jira_closed.grid(
