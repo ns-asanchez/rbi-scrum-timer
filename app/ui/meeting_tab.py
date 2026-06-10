@@ -799,6 +799,7 @@ class MeetingTab(ctk.CTkFrame):
             "In Progress": "#1f6aa5",
             "En curso": "#1f6aa5",
             "In Review": "#8e44ad",
+            "Code Review": "#b7950b",
             "To Do": "#555555",
             "Abierta": "#555555",
             "Open": "#555555",
@@ -868,7 +869,7 @@ class MeetingTab(ctk.CTkFrame):
             summary_lbl = ctk.CTkLabel(
                 card,
                 text=issue["summary"],
-                font=("", 12),
+                font=("", 16),
                 anchor="w",
                 justify="left",
                 wraplength=400,
@@ -939,7 +940,7 @@ class MeetingTab(ctk.CTkFrame):
                 summary_lbl = ctk.CTkLabel(
                     card,
                     text=issue["summary"],
-                    font=("", 14, "bold"),
+                    font=("", 16),
                     anchor="w",
                     justify="left",
                     wraplength=400,
