@@ -806,6 +806,11 @@ class MeetingTab(ctk.CTkFrame):
             "Bloqueada": "#c0392b",
             "More Info": "#d68910",
             "Más info": "#d68910",
+            "Done": "#27ae60",
+            "Cerrada": "#27ae60",
+            "Closed": "#27ae60",
+            "Resolved": "#e67e22",
+            "Resuelta": "#e67e22",
         }
 
         # ── Open issues ─────────────────────────────────────────────────────
