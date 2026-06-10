@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw
 from app.jira_client import (
     fetch_closed_issues_for_participant,
     fetch_issues_for_participant,
+    fetch_sprint_info,
 )
 from app.models import MeetingParticipant, MeetingState
 from app.ui.scroll_fix import apply as apply_scroll
