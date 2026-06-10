@@ -20,16 +20,16 @@ HELP_CONTENT = [
             ),
             (
                 "Next",
-                "Skips to the next participant and loads their Jira tasks automatically. If paused, resumes.",
+                "Advances to the next participant and automatically loads their Jira tasks (Open + Closed columns). If paused, resumes the timer.",
             ),
-            ("Stop", "Ends the meeting early. Unlocks the Save Session button."),
+            ("Stop", "Ends the meeting early and marks remaining participants as done. Unlocks Save Session."),
             (
                 "Reset",
-                "Clears everything and returns to idle. Only available after Stop or when the meeting ends naturally.",
+                "Clears everything and returns to idle. Jira task columns are also cleared. Only available after Stop or when the meeting ends naturally.",
             ),
             (
                 "Save Session",
-                "Saves the session to the local database (visible in Stats). Only available after the meeting finishes.",
+                "Saves the session to the local database (visible in Stats). Only available once per meeting — the button is disabled after saving to prevent duplicates.",
             ),
             (
                 "Status dot ●",
@@ -37,15 +37,23 @@ HELP_CONTENT = [
             ),
             (
                 "Current Speaker avatar",
-                "Displays the Jira profile picture of the current speaker if one has been synced via Settings.",
+                "Displays the Jira profile picture of the current speaker (if synced via Settings) above their name.",
             ),
             (
-                "Attendees list",
-                "Shows all participants in order. Avatars are shown when synced from Jira. The active speaker is highlighted.",
+                "Attendees list (col 2)",
+                "Shows all participants in random order with their timers. Click any row — including already-done participants — to load their Jira tasks in the right columns. Useful when someone arrives late.",
             ),
             (
-                "Jira Tasks panel",
-                "Shows the active sprint issues assigned to the current speaker — open issues at the top, closed this sprint below. Click a ticket key to open it in Jira.",
+                "🔵 Open Tasks (col 3)",
+                "Active sprint issues assigned to the current (or clicked) speaker. Click a ticket key to open it in Jira. Colour-coded by status: blue=In Progress, purple=In Review, orange=More Info, red=Blocked, grey=Open.",
+            ),
+            (
+                "✅ Closed Tasks (col 4)",
+                "Issues completed this sprint by the same speaker. Green badge = Cerrada/Closed/Done, orange badge = Resuelta/Resolved.",
+            ),
+            (
+                "Font size A− / A / A+",
+                "Three font size presets (12 / 18 / 24) in the Closed Tasks header. Applies to task description text in both columns. The active size is highlighted in blue.",
             ),
         ],
     ),
@@ -66,23 +74,27 @@ HELP_CONTENT = [
             ),
             (
                 "All Participants list",
-                "Everyone in the app. Select one and use → to add to today's meeting, or « for everyone.",
+                "Everyone in the app. Select one and use → to add to today's meeting, or « for everyone at once.",
             ),
             (
                 "In Today's Meeting",
-                "Attendees for this session. Use ← to remove or ✕ to clear.",
+                "Attendees for this session. Use ← to remove someone or ✕ to clear the list.",
             ),
             (
                 "+ New",
-                "Add a participant manually with name, Jira Account ID and avatar URL/path. Jira ID links the person to their sprint tasks.",
+                "Add a participant manually — enter name, Jira Account ID and avatar URL/path. The Jira ID links the person to their sprint tasks in the Meeting tab.",
             ),
             (
                 "✏ Edit / 🗑 Delete",
                 "Edit name, Jira ID, avatar or manager flag. Delete removes permanently.",
             ),
             (
+                "🏆 Ranking",
+                "Opens a popup with two columns: Top 3 most talkative (🥇🥈🥉) and Top 3 least talkative (🐢🐌🦥), ranked by total cumulative speaking time across all saved sessions. Managers are excluded.",
+            ),
+            (
                 "🔔  Bell alert",
-                "Plays a chime in the last 10 s of each turn. Toggle, adjust volume, or test with ▶ Test.",
+                "Plays a chime every second during the last 10 s of each turn. Toggle on/off, adjust volume with the slider, or preview with ▶ Test.",
             ),
         ],
     ),
@@ -91,15 +103,19 @@ HELP_CONTENT = [
         [
             (
                 "Session history",
-                "All saved sessions with date, planned vs actual duration.",
+                "Dropdown showing all saved sessions with date and actual duration. Select one to see its per-participant breakdown.",
+            ),
+            (
+                "🗑 Delete",
+                "Deletes the selected session after confirmation. The charts update immediately.",
             ),
             (
                 "Top chart",
-                "Meeting duration history across sessions — planned vs actual.",
+                "Meeting duration history — planned (blue) vs actual (red) across all sessions. Hover a point for details.",
             ),
             (
                 "Bottom chart",
-                "Per-participant speaking time for a selected session. Hover a bar to see the value.",
+                "Per-participant allocated vs actual speaking time for the selected session. Hover a bar for the exact value.",
             ),
         ],
     ),
@@ -108,31 +124,31 @@ HELP_CONTENT = [
         [
             (
                 "Atlassian Email",
-                "Your Netskope Atlassian email. Used for Jira API calls. Set once — stored locally, env vars take precedence.",
+                "Your Netskope Atlassian email. Stored locally in the DB. Environment variables (~/.zshrc) take precedence at runtime.",
             ),
             (
                 "Atlassian API Token",
-                "Your Atlassian API token (from id.atlassian.com). Masked by default — use 👁 to reveal. Test connection to verify.",
+                "Your Atlassian API token (from id.atlassian.com). Masked with ● — use 👁 to reveal. Click Save to persist.",
             ),
             (
                 "Test connection",
-                "Validates the email + token against the Jira API. Shows ✅ Verified on success.",
+                "Validates the email + token against the Jira API (/myself endpoint). Shows ✅ Verified on success.",
             ),
             (
                 "Board Filter URL",
-                "The Jira board URL used to sync team members (e.g. .../boards/14955?label=polaris-squad). The ?label= param filters the sprint members shown.",
+                "The Jira board URL used to sync team members, e.g. .../boards/14955?label=polaris-squad. The ?label= query param is used to filter which sprint members appear.",
             ),
             (
                 "Refresh Users",
-                "Fetches team members from the board's active sprint. Shows new (not in DB) and already synced members with their avatars.",
+                "Fetches unique assignees from the board's active sprint. New members (not yet in DB) appear at the top with Add ✚ checkbox enabled. Already-synced members appear below, dimmed.",
             ),
             (
                 "Add ✚ / Jefazo ⭐",
-                "Tick Add to include a new member. Tick Jefazo to mark them as a manager (appears in Managers & + list). Save Selected to persist.",
+                "Tick Add ✚ to include a new member. Tick Jefazo ⭐ to mark them as a manager. Click Save Selected to write to the database.",
             ),
             (
                 "Save Selected",
-                "Adds ticked members to the local database with their Jira account ID and avatar. Participants tab refreshes automatically.",
+                "Saves ticked members with their Jira account ID and avatar path. The Participants tab refreshes automatically.",
             ),
         ],
     ),
@@ -141,15 +157,19 @@ HELP_CONTENT = [
         [
             (
                 "Closing the app",
-                "The app warns you if a meeting is in progress. Stop or finish before closing.",
+                "The app warns you if a meeting is in progress. Stop or finish the meeting before closing.",
             ),
             (
                 "Data storage",
-                "All data is stored locally in data/scrum.db — no external services required.",
+                "All data is stored locally in data/scrum.db (SQLite). The file is excluded from git. Delete it to start fresh — it is recreated automatically on next launch.",
             ),
             (
                 "Avatars",
-                "Profile pictures are downloaded from Jira and cached in data/avatars/. They replace food icons once synced.",
+                "Profile pictures are downloaded from Jira and cached in data/avatars/<accountId>.png. They replace food icons once synced via Settings → Refresh Users.",
+            ),
+            (
+                "Jira status colours",
+                "In Progress / En curso = blue · In Review = purple · Blocked = red · More Info = amber · Code Review = gold · Cerrada/Closed/Done = green · Resuelta/Resolved = orange.",
             ),
         ],
     ),
