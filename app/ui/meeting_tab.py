@@ -768,54 +768,73 @@ class MeetingTab(ctk.CTkFrame):
         fetch_sprint_info(board_url, on_done=_on_done, on_error=_on_error)
 
     def _render_sprint_info(self, sprints: list[dict]) -> None:
-        """Show sprint info as an in-window overlay."""
+        """Show sprint info as an in-window overlay with issue stats."""
         self._btn_sprint_info.configure(state="normal", text="ℹ️")
         if not sprints:
             from app.ui.dialogs import showinfo
-            showinfo(self, "Sprint info", "No active sprints found for this board.")
+            showinfo(self, "Sprint info", "No active RBI sprint found for this board.")
             return
 
         root = self.winfo_toplevel()
         done_var = ctk.BooleanVar(master=root, value=False)
 
-        backdrop = ctk.CTkFrame(root, corner_radius=0)
-        backdrop.configure(fg_color="#1a1a1a")
+        backdrop = ctk.CTkFrame(root, corner_radius=0, fg_color="#111111")
         backdrop.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        card_h = min(100 + len(sprints) * 130, 500)
-        card = ctk.CTkFrame(backdrop, fg_color=("gray92", "gray17"),
-                            corner_radius=12, width=520, height=card_h)
+        # Card: fixed width, auto height (no pack_propagate(False))
+        card = ctk.CTkFrame(backdrop, fg_color=("gray92", "gray17"), corner_radius=14, width=560)
         card.place(relx=0.5, rely=0.5, anchor="center")
-        card.pack_propagate(False)
-
-        ctk.CTkLabel(card, text="🏃  Active Sprint Info",
-                     font=("", 16, "bold")).pack(pady=(16, 4))
-
-        scroll = ctk.CTkScrollableFrame(card, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=16, pady=(4, 8))
-
-        for sprint in sprints:
-            box = ctk.CTkFrame(scroll, fg_color=("gray86", "gray22"), corner_radius=8)
-            box.pack(fill="x", pady=6)
-            ctk.CTkLabel(box, text=sprint["name"], font=("", 14, "bold"),
-                         anchor="w").pack(anchor="w", padx=12, pady=(10, 2))
-            info_lines = [
-                f"📅  {sprint['startDate']}  →  {sprint['endDate']}",
-            ]
-            if sprint["goal"] and sprint["goal"] != "—":
-                info_lines.append(f"🎯  {sprint['goal'][:80]}")
-            for line in info_lines:
-                ctk.CTkLabel(box, text=line, font=("", 12), text_color="gray",
-                             anchor="w", justify="left", wraplength=460).pack(
-                    anchor="w", padx=12, pady=2
-                )
-            ctk.CTkFrame(box, height=6, fg_color="transparent").pack()
 
         def _close():
             backdrop.destroy()
             done_var.set(True)
 
-        ctk.CTkButton(card, text="Close", width=100, command=_close).pack(pady=(0, 14))
+        ctk.CTkLabel(card, text="🏃  Current Sprint", font=("", 18, "bold")).pack(pady=(20, 6), padx=24, anchor="w")
+
+        for sprint in sprints:
+            box = ctk.CTkFrame(card, fg_color=("gray86", "gray22"), corner_radius=10)
+            box.pack(fill="x", padx=16, pady=6)
+            box.columnconfigure(1, weight=1)
+
+            # Sprint name + days left
+            name_row = ctk.CTkFrame(box, fg_color="transparent")
+            name_row.pack(fill="x", padx=12, pady=(12, 4))
+            ctk.CTkLabel(name_row, text=sprint["name"], font=("", 15, "bold"), anchor="w").pack(side="left")
+            ctk.CTkLabel(name_row, text=f"⏳ {sprint['daysLeft']} left",
+                         font=("", 12), text_color="#e67e22").pack(side="right")
+
+            # Dates
+            ctk.CTkLabel(box, text=f"📅  {sprint['startDate']}  →  {sprint['endDate']}",
+                         font=("", 12), text_color="gray", anchor="w").pack(anchor="w", padx=12, pady=2)
+
+            # Goal
+            if sprint["goal"] and sprint["goal"] != "—":
+                ctk.CTkLabel(box, text=f"🎯  {sprint['goal'][:90]}",
+                             font=("", 12), text_color="gray", anchor="w",
+                             justify="left", wraplength=500).pack(anchor="w", padx=12, pady=2)
+
+            # Issue stats grid
+            sep = ctk.CTkFrame(box, height=1, fg_color="gray40")
+            sep.pack(fill="x", padx=12, pady=(8, 6))
+
+            stats_row = ctk.CTkFrame(box, fg_color="transparent")
+            stats_row.pack(fill="x", padx=12, pady=(0, 12))
+            for col, (label, value, color) in enumerate([
+                ("✅ Done",        f"{sprint['done']} / {sprint['total']}", "#27ae60"),
+                ("🔵 In Progress", str(sprint["inProgress"]),              "#1f6aa5"),
+                ("⬜ To Do",       str(sprint["todo"]),                    "gray"),
+                ("SP Done",        f"{sprint['spDone']} / {sprint['spTotal']}", "#8e44ad"),
+            ]):
+                cell = ctk.CTkFrame(stats_row, fg_color="transparent")
+                cell.pack(side="left", expand=True, fill="x", padx=4)
+                ctk.CTkLabel(cell, text=value, font=("", 18, "bold"),
+                             text_color=color).pack()
+                ctk.CTkLabel(cell, text=label, font=("", 10),
+                             text_color="gray").pack()
+
+        ctk.CTkButton(card, text="✕  Close", width=120, height=34,
+                      command=_close).pack(pady=(8, 20))
+
         backdrop.lift()
         root.wait_variable(done_var)
 

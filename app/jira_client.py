@@ -291,18 +291,53 @@ def fetch_sprint_info(
                 params={"state": "active"},
             )
             import re as _re
+            from datetime import datetime, timezone
             sprints = []
             for s in data.get("values", []):
                 name = s.get("name", "")
-                # Only include RBI team sprints matching pattern "R<n> - RBI Sprint"
-                if _re.match(r"R\d+\s*-\s*RBI Sprint", name):
-                    sprints.append({
-                        "name":      name,
-                        "state":     s.get("state", ""),
-                        "startDate": s.get("startDate", "")[:10] if s.get("startDate") else "—",
-                        "endDate":   s.get("endDate", "")[:10] if s.get("endDate") else "—",
-                        "goal":      s.get("goal", "") or "—",
-                    })
+                if not _re.match(r"R\d+\s*-\s*RBI Sprint", name):
+                    continue
+                sprint_id = s.get("id")
+                # Fetch issue stats for this sprint
+                try:
+                    issues_data = _request(
+                        f"/rest/agile/1.0/sprint/{sprint_id}/issue",
+                        {"maxResults": 200, "fields": "status,customfield_10004"},
+                    )
+                    issues = issues_data.get("issues", [])
+                    total = len(issues)
+                    done_issues = sum(1 for i in issues if i["fields"]["status"]["statusCategory"]["key"] == "done")
+                    inprog = sum(1 for i in issues if i["fields"]["status"]["statusCategory"]["key"] == "indeterminate")
+                    todo = total - done_issues - inprog
+                    sp_done = int(sum(i["fields"].get("customfield_10004") or 0 for i in issues if i["fields"]["status"]["statusCategory"]["key"] == "done"))
+                    sp_total = int(sum(i["fields"].get("customfield_10004") or 0 for i in issues))
+                except Exception:
+                    total = done_issues = inprog = todo = sp_done = sp_total = 0
+
+                # Days remaining
+                end_str = s.get("endDate", "")
+                days_left = "—"
+                if end_str:
+                    try:
+                        end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+                        delta = (end_dt - datetime.now(timezone.utc)).days
+                        days_left = f"{max(0, delta)} days"
+                    except Exception:
+                        pass
+
+                sprints.append({
+                    "name":       name,
+                    "startDate":  s.get("startDate", "")[:10] if s.get("startDate") else "—",
+                    "endDate":    s.get("endDate", "")[:10] if s.get("endDate") else "—",
+                    "goal":       s.get("goal", "") or "—",
+                    "daysLeft":   days_left,
+                    "total":      total,
+                    "done":       done_issues,
+                    "inProgress": inprog,
+                    "todo":       todo,
+                    "spDone":     sp_done,
+                    "spTotal":    sp_total,
+                })
             on_done(sprints)
         except Exception as e:
             on_error(str(e))
