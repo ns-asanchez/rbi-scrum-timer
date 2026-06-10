@@ -283,13 +283,17 @@ class MeetingTab(ctk.CTkFrame):
         )
         self._jira_header.grid(row=0, column=0, sticky="w")
 
+        sprint_info_row = ctk.CTkFrame(header_row2, fg_color="transparent")
+        sprint_info_row.grid(row=0, column=1, sticky="e")
+        ctk.CTkLabel(sprint_info_row, text="Sprint info", font=("", 11),
+                     text_color="gray").pack(side="left", padx=(0, 4))
         self._btn_sprint_info = ctk.CTkButton(
-            header_row2, text="ℹ️", width=32, height=26,
+            sprint_info_row, text="ℹ️", width=32, height=26,
             fg_color="transparent", hover_color=("gray80", "gray30"),
             font=("", 14),
             command=self._show_sprint_info,
         )
-        self._btn_sprint_info.grid(row=0, column=1, sticky="e", padx=(4, 0))
+        self._btn_sprint_info.pack(side="left")
 
         # font_btns dict initialised here so col3 can populate it
         self._font_btns = {}
@@ -768,7 +772,7 @@ class MeetingTab(ctk.CTkFrame):
         fetch_sprint_info(board_url, on_done=_on_done, on_error=_on_error)
 
     def _render_sprint_info(self, sprints: list[dict]) -> None:
-        """Show sprint info as an in-window overlay with issue stats."""
+        """Show sprint info as a transient popup (stays above main window)."""
         self._btn_sprint_info.configure(state="normal", text="ℹ️")
         if not sprints:
             from app.ui.dialogs import showinfo
@@ -776,55 +780,52 @@ class MeetingTab(ctk.CTkFrame):
             return
 
         root = self.winfo_toplevel()
-        done_var = ctk.BooleanVar(master=root, value=False)
+        popup = ctk.CTkToplevel(root)
+        popup.title("🏃  Current Sprint")
+        popup.resizable(False, False)
+        popup.transient(root)
+        popup.lift()
+        popup.focus_force()
+        popup.update_idletasks()
+        pw, ph = 580, 300 + len(sprints) * 10
+        px = root.winfo_rootx() + root.winfo_width() // 2 - pw // 2
+        py = root.winfo_rooty() + root.winfo_height() // 2 - ph // 2
+        popup.geometry(f"{pw}x{ph}+{px}+{py}")
 
-        backdrop = ctk.CTkFrame(root, corner_radius=0, fg_color="#111111")
-        backdrop.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-        # Card: fixed width, auto height (no pack_propagate(False))
-        card = ctk.CTkFrame(backdrop, fg_color=("gray92", "gray17"), corner_radius=14, width=560)
-        card.place(relx=0.5, rely=0.5, anchor="center")
-
-        def _close():
-            backdrop.destroy()
-            done_var.set(True)
-
-        ctk.CTkLabel(card, text="🏃  Current Sprint", font=("", 18, "bold")).pack(pady=(20, 6), padx=24, anchor="w")
+        ctk.CTkLabel(popup, text="🏃  Current Sprint",
+                     font=("", 18, "bold")).pack(pady=(20, 6), padx=24, anchor="w")
 
         for sprint in sprints:
-            box = ctk.CTkFrame(card, fg_color=("gray86", "gray22"), corner_radius=10)
+            box = ctk.CTkFrame(popup, fg_color=("gray88", "gray20"), corner_radius=10)
             box.pack(fill="x", padx=16, pady=6)
-            box.columnconfigure(1, weight=1)
 
-            # Sprint name + days left
             name_row = ctk.CTkFrame(box, fg_color="transparent")
             name_row.pack(fill="x", padx=12, pady=(12, 4))
-            ctk.CTkLabel(name_row, text=sprint["name"], font=("", 15, "bold"), anchor="w").pack(side="left")
+            ctk.CTkLabel(name_row, text=sprint["name"], font=("", 15, "bold"),
+                         anchor="w").pack(side="left")
             ctk.CTkLabel(name_row, text=f"⏳ {sprint['daysLeft']} left",
                          font=("", 12), text_color="#e67e22").pack(side="right")
 
-            # Dates
             ctk.CTkLabel(box, text=f"📅  {sprint['startDate']}  →  {sprint['endDate']}",
-                         font=("", 12), text_color="gray", anchor="w").pack(anchor="w", padx=12, pady=2)
+                         font=("", 12), text_color="gray", anchor="w").pack(
+                anchor="w", padx=12, pady=2)
 
-            # Goal
             if sprint["goal"] and sprint["goal"] != "—":
                 ctk.CTkLabel(box, text=f"🎯  {sprint['goal'][:90]}",
                              font=("", 12), text_color="gray", anchor="w",
-                             justify="left", wraplength=500).pack(anchor="w", padx=12, pady=2)
+                             justify="left", wraplength=520).pack(
+                    anchor="w", padx=12, pady=2)
 
-            # Issue stats grid
-            sep = ctk.CTkFrame(box, height=1, fg_color="gray40")
-            sep.pack(fill="x", padx=12, pady=(8, 6))
+            ctk.CTkFrame(box, height=1, fg_color="gray40").pack(fill="x", padx=12, pady=(8, 6))
 
             stats_row = ctk.CTkFrame(box, fg_color="transparent")
             stats_row.pack(fill="x", padx=12, pady=(0, 12))
-            for col, (label, value, color) in enumerate([
+            for label, value, color in [
                 ("✅ Done",        f"{sprint['done']} / {sprint['total']}", "#27ae60"),
                 ("🔵 In Progress", str(sprint["inProgress"]),              "#1f6aa5"),
                 ("⬜ To Do",       str(sprint["todo"]),                    "gray"),
                 ("SP Done",        f"{sprint['spDone']} / {sprint['spTotal']}", "#8e44ad"),
-            ]):
+            ]:
                 cell = ctk.CTkFrame(stats_row, fg_color="transparent")
                 cell.pack(side="left", expand=True, fill="x", padx=4)
                 ctk.CTkLabel(cell, text=value, font=("", 18, "bold"),
@@ -832,11 +833,8 @@ class MeetingTab(ctk.CTkFrame):
                 ctk.CTkLabel(cell, text=label, font=("", 10),
                              text_color="gray").pack()
 
-        ctk.CTkButton(card, text="✕  Close", width=120, height=34,
-                      command=_close).pack(pady=(8, 20))
-
-        backdrop.lift()
-        root.wait_variable(done_var)
+        ctk.CTkButton(popup, text="✕  Close", width=120, height=34,
+                      command=popup.destroy).pack(pady=(10, 20))
 
     def _load_jira_for_current(self) -> None:
         """Fetch Jira tasks for current speaker (open + closed in parallel)."""
