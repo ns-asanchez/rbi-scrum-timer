@@ -227,7 +227,18 @@ class MeetingTab(ctk.CTkFrame):
             hover_color="#145c36",
             command=self._on_save,
         )
-        self._btn_save.pack(pady=(4, 16))
+        self._btn_save.pack(pady=(4, 6))
+
+        # Sprint Info button
+        self._btn_sprint_info = ctk.CTkButton(
+            left,
+            text="🏃  Sprint Info",
+            width=250,
+            fg_color="#1a4a7a",
+            hover_color="#143660",
+            command=self._show_sprint_info,
+        )
+        self._btn_sprint_info.pack(pady=(0, 16))
 
     def _build_col1(self) -> None:
         """Column 1: Attendees (expandable) + Managers (fixed height)."""
