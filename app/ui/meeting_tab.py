@@ -863,7 +863,7 @@ class MeetingTab(ctk.CTkFrame):
             key_btn = ctk.CTkButton(
                 top,
                 text=issue["key"],
-                font=("", 20, "bold"),
+                font=("", self._jira_font_size + 2, "bold"),
                 width=120,
                 height=28,
                 fg_color="transparent",
@@ -933,7 +933,7 @@ class MeetingTab(ctk.CTkFrame):
                 ctk.CTkButton(
                     top,
                     text=issue["key"],
-                    font=("", 20, "bold"),
+                    font=("", self._jira_font_size + 2, "bold"),
                     width=120,
                     height=28,
                     fg_color="transparent",
