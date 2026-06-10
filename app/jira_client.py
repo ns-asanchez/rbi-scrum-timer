@@ -298,12 +298,21 @@ def fetch_sprint_info(
                 if not _re.match(r"R\d+\s*-\s*RBI Sprint", name):
                     continue
                 sprint_id = s.get("id")
-                # Fetch issue stats for this sprint
+                # Fetch issue stats filtered by board JQL + label (polaris-squad only)
                 try:
-                    issues_data = _request(
-                        f"/rest/agile/1.0/sprint/{sprint_id}/issue",
-                        {"maxResults": 200, "fields": "status,customfield_10004"},
-                    )
+                    cfg = _request(f"/rest/agile/1.0/board/{board_id}/configuration")
+                    fid = cfg.get("filter", {}).get("id")
+                    fdata = _request(f"/rest/api/2/filter/{fid}")
+                    board_jql = _strip_order_by(fdata.get("jql", ""))
+                    qs = parse_qs(urlparse(board_url).query)
+                    label = qs.get("label", [None])[0]
+                    label_clause = f' AND labels = "{label}"' if label else ""
+                    sprint_jql = f"sprint = {sprint_id} AND ({board_jql}){label_clause}"
+                    issues_data = _request("/rest/api/3/search/jql", body={
+                        "jql": sprint_jql,
+                        "maxResults": 200,
+                        "fields": ["status", "customfield_10004"],
+                    })
                     issues = issues_data.get("issues", [])
                     total = len(issues)
                     done_issues = sum(1 for i in issues if i["fields"]["status"]["statusCategory"]["key"] == "done")
@@ -325,22 +334,13 @@ def fetch_sprint_info(
                     except Exception:
                         pass
 
-                # Fetch sprint report (Insights) from greenhopper
-                report_completed = report_remaining = report_removed = 0
-                report_sp_completed = report_sp_remaining = 0
-                try:
-                    report = _request(
-                        f"/rest/greenhopper/1.0/rapid/charts/sprintreport"
-                        f"?rapidViewId={board_id}&sprintId={sprint_id}"
-                    )
-                    contents = report.get("contents", {})
-                    report_completed   = len(contents.get("completedIssues", []))
-                    report_remaining   = len(contents.get("issuesNotCompletedInCurrentSprint", []))
-                    report_removed     = len(contents.get("puntedIssues", []))
-                    report_sp_completed = int(contents.get("completedIssuesEstimateSum", {}).get("value") or 0)
-                    report_sp_remaining = int(contents.get("issuesNotCompletedEstimateSum", {}).get("value") or 0)
-                except Exception:
-                    pass
+                # Sprint Report — use same filtered issues (polaris-squad only)
+                # greenhopper report includes all squads, so we derive from our filtered set
+                report_completed    = done_issues
+                report_remaining    = inprog + todo
+                report_removed      = 0  # not available via JQL
+                report_sp_completed = sp_done
+                report_sp_remaining = sp_total - sp_done
 
                 sprints.append({
                     "name":              name,

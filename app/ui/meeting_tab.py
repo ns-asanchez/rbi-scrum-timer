@@ -794,11 +794,14 @@ class MeetingTab(ctk.CTkFrame):
             box.pack(fill="x", padx=16, pady=6)
 
             name_row = ctk.CTkFrame(box, fg_color="transparent")
-            name_row.pack(fill="x", padx=12, pady=(12, 4))
+            name_row.pack(fill="x", padx=12, pady=(12, 2))
             ctk.CTkLabel(name_row, text=sprint["name"], font=("", 15, "bold"),
                          anchor="w").pack(side="left")
             ctk.CTkLabel(name_row, text=f"⏳ {sprint['daysLeft']} left",
                          font=("", 12), text_color="#e67e22").pack(side="right")
+            ctk.CTkLabel(box, text="🏷 polaris-squad filter applied",
+                         font=("", 10), text_color="gray", anchor="w").pack(
+                anchor="w", padx=12, pady=(0, 4))
 
             ctk.CTkLabel(box, text=f"📅  {sprint['startDate']}  →  {sprint['endDate']}",
                          font=("", 12), text_color="gray", anchor="w").pack(
@@ -825,18 +828,37 @@ class MeetingTab(ctk.CTkFrame):
 
             stats_row = ctk.CTkFrame(box, fg_color="transparent")
             stats_row.pack(fill="x", padx=12, pady=(0, 12))
-            for label, value, color in [
-                ("✅ Done",        f"{sprint['done']} / {sprint['total']}", "#27ae60"),
-                ("🔵 In Progress", str(sprint["inProgress"]),              "#1f6aa5"),
-                ("⬜ To Do",       str(sprint["todo"]),                    "gray"),
-                ("SP Done",        f"{sprint['spDone']} / {sprint['spTotal']}", "#8e44ad"),
-            ]:
+
+            # Tooltip label (shared, shown/hidden on hover)
+            tooltip_lbl = ctk.CTkLabel(
+                box, text="", font=("", 10), text_color="white",
+                fg_color="#333344", corner_radius=6,
+            )
+
+            stat_defs = [
+                ("✅ Done",        f"{sprint['done']} / {sprint['total']}",
+                 "#27ae60", f"{sprint['done']} issues completed out of {sprint['total']} total in sprint"),
+                ("🔵 In Progress", str(sprint["inProgress"]),
+                 "#1f6aa5", f"{sprint['inProgress']} issues currently being worked on"),
+                ("⬜ To Do",       str(sprint["todo"]),
+                 "gray",    f"{sprint['todo']} issues not yet started"),
+                ("SP Done",        f"{sprint['spDone']} / {sprint['spTotal']}",
+                 "#8e44ad", f"{sprint['spDone']} story points done out of {sprint['spTotal']} total committed"),
+            ]
+
+            for label, value, color, tip in stat_defs:
                 cell = ctk.CTkFrame(stats_row, fg_color="transparent")
                 cell.pack(side="left", expand=True, fill="x", padx=4)
-                ctk.CTkLabel(cell, text=value, font=("", 18, "bold"),
-                             text_color=color).pack()
-                ctk.CTkLabel(cell, text=label, font=("", 10),
-                             text_color="gray").pack()
+                val_lbl = ctk.CTkLabel(cell, text=value, font=("", 18, "bold"),
+                                       text_color=color, cursor="hand2")
+                val_lbl.pack()
+                ctk.CTkLabel(cell, text=label, font=("", 10), text_color="gray").pack()
+                # Hover tooltip
+                val_lbl.bind("<Enter>", lambda e, t=tip, lbl=tooltip_lbl: (
+                    lbl.configure(text=f"  {t}  "),
+                    lbl.pack(anchor="w", padx=12, pady=(0, 6)),
+                ))
+                val_lbl.bind("<Leave>", lambda e, lbl=tooltip_lbl: lbl.pack_forget())
 
         # ── Insights section ────────────────────────────────────────────────
         ins_box = ctk.CTkFrame(popup, fg_color=("gray88", "gray20"), corner_radius=10)
