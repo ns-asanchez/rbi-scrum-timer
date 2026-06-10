@@ -805,10 +805,21 @@ class MeetingTab(ctk.CTkFrame):
                 anchor="w", padx=12, pady=2)
 
             if sprint["goal"] and sprint["goal"] != "—":
-                ctk.CTkLabel(box, text=f"🎯  {sprint['goal'][:90]}",
-                             font=("", 12), text_color="gray", anchor="w",
-                             justify="left", wraplength=520).pack(
-                    anchor="w", padx=12, pady=2)
+                goal = sprint["goal"]
+                goal_row = ctk.CTkFrame(box, fg_color="transparent")
+                goal_row.pack(anchor="w", padx=12, pady=2)
+                ctk.CTkLabel(goal_row, text="🎯", font=("", 12)).pack(side="left", padx=(0, 4))
+                if goal.startswith("http"):
+                    ctk.CTkButton(
+                        goal_row, text=goal[:80],
+                        font=("", 12), text_color=("#1f6aa5", "#4a9ede"),
+                        fg_color="transparent", hover=False, anchor="w",
+                        command=lambda url=goal: subprocess.run(["open", url], check=False),
+                    ).pack(side="left")
+                else:
+                    ctk.CTkLabel(goal_row, text=goal[:90], font=("", 12),
+                                 text_color="gray", anchor="w",
+                                 justify="left", wraplength=480).pack(side="left")
 
             ctk.CTkFrame(box, height=1, fg_color="gray40").pack(fill="x", padx=12, pady=(8, 6))
 
