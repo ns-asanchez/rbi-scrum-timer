@@ -298,6 +298,21 @@ def delete_session(session_id: int) -> None:
         conn.execute("DELETE FROM meeting_sessions WHERE id = ?", (session_id,))
 
 
+def get_participant_time_ranking() -> list[tuple[str, int]]:
+    """Return all participants sorted by cumulative speaking time descending."""
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT participant_name, SUM(actual_time) AS total
+            FROM participant_times
+            WHERE is_jefote = 0
+            GROUP BY participant_name
+            ORDER BY total DESC
+            """
+        ).fetchall()
+    return [(r["participant_name"], r["total"]) for r in rows]
+
+
 def get_sessions() -> list[SessionRecord]:
     """Fetch all sessions with their participant times, newest first."""
     with _connect() as conn:

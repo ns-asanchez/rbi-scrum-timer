@@ -142,6 +142,14 @@ class ParticipantsTab(ctk.CTkFrame):
             command=self._delete_participant,
         )
         self._btn_delete.pack(side="left", padx=4)
+        ctk.CTkButton(
+            all_btns,
+            text="🏆 Ranking",
+            width=90,
+            fg_color="#6d4c9e",
+            hover_color="#4a3070",
+            command=self._show_ranking,
+        ).pack(side="left", padx=4)
 
         # ── Center: transfer buttons ───────────────────────────────────────────
         center = ctk.CTkFrame(self, fg_color="transparent")
@@ -554,3 +562,70 @@ class ParticipantsTab(ctk.CTkFrame):
         self._attendees = [a for a in self._attendees if a.id != p.id]
         self._selected_all = None
         self.load_data()
+
+    def _show_ranking(self) -> None:
+        """Show top3 most and least talkative participants across all sessions."""
+        rows = db.get_participant_time_ranking()
+        if not rows:
+            showinfo(self, "Ranking", "No session data yet. Save a meeting first.")
+            return
+
+        popup = ctk.CTkToplevel(self)
+        popup.title("🏆  Speaker Ranking")
+        popup.resizable(False, False)
+        popup.grab_set()
+        popup.lift()
+        popup.focus_force()
+        popup.update_idletasks()
+        pw, ph = 520, 320
+        px = self.winfo_rootx() + self.winfo_width() // 2 - pw // 2
+        py = self.winfo_rooty() + self.winfo_height() // 2 - ph // 2
+        popup.geometry(f"{pw}x{ph}+{px}+{py}")
+
+        ctk.CTkLabel(popup, text="🏆  Speaker Ranking", font=("", 16, "bold")).pack(
+            pady=(18, 4)
+        )
+        ctk.CTkLabel(
+            popup,
+            text="Cumulative speaking time across all saved sessions",
+            font=("", 11),
+            text_color="gray",
+        ).pack(pady=(0, 14))
+
+        cols = ctk.CTkFrame(popup, fg_color="transparent")
+        cols.pack(fill="both", expand=True, padx=20)
+        cols.columnconfigure(0, weight=1)
+        cols.columnconfigure(1, weight=1)
+
+        MEDALS = ["🥇", "🥈", "🥉"]
+        TURTLES = ["🐢", "🐌", "🦥"]
+
+        def _col(parent, col, title, entries, icons):
+            """Render a ranking column."""
+            frame = ctk.CTkFrame(parent, fg_color=("gray88", "gray20"), corner_radius=8)
+            frame.grid(row=0, column=col, padx=6, sticky="nsew")
+            ctk.CTkLabel(frame, text=title, font=("", 13, "bold")).pack(pady=(10, 6))
+            for i, (name, total) in enumerate(entries[:3]):
+                m, s = divmod(total, 60)
+                time_str = f"{m}:{s:02d}"
+                row = ctk.CTkFrame(frame, fg_color="transparent")
+                row.pack(fill="x", padx=10, pady=3)
+                ctk.CTkLabel(row, text=icons[i], font=("", 18), width=30).pack(
+                    side="left"
+                )
+                ctk.CTkLabel(row, text=name, font=("", 13, "bold"), anchor="w").pack(
+                    side="left", padx=(4, 0), fill="x", expand=True
+                )
+                ctk.CTkLabel(
+                    row, text=time_str, font=("", 12), text_color="gray"
+                ).pack(side="right")
+            frame.pack_propagate(False)
+
+        top3 = rows[:3]
+        bot3 = list(reversed(rows[-3:]))
+        _col(cols, 0, "⏱  Most talkative", top3, MEDALS)
+        _col(cols, 1, "🤫  Least talkative", bot3, TURTLES)
+
+        ctk.CTkButton(popup, text="Close", width=100, command=popup.destroy).pack(
+            pady=(14, 18)
+        )

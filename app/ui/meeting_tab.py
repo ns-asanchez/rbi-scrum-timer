@@ -71,6 +71,7 @@ class MeetingTab(ctk.CTkFrame):
         self._blink_job = None
         self._blink_on = True
         self._jira_fetch_results = {}
+        self._jira_font_size: int = 18  # normal; A- = 12, A+ = 24
         self._speaker_avatar_cache: dict[str, ctk.CTkImage] = {}  # path -> CTkImage
         self._speaker_current_path: str = ""
         # Blank 1×1 transparent image used to clear the speaker label image
@@ -250,6 +251,40 @@ class MeetingTab(ctk.CTkFrame):
         self._list_jefotes = ctk.CTkScrollableFrame(mid, height=120)
         self._list_jefotes.grid(row=3, column=0, padx=8, pady=(0, 12), sticky="ew")
         self._list_jefotes.columnconfigure(0, weight=1)
+
+    def _build_font_sizer(self) -> None:
+        """Floating font-size strip overlaid on the border between col1 and col2."""
+        strip = ctk.CTkFrame(self, fg_color=("gray88", "gray20"), corner_radius=8, width=34)
+        strip.grid(row=0, column=1, padx=0, pady=(0, 0), sticky="e")
+        strip.grid_propagate(False)
+        strip.configure(width=36)
+
+        ctk.CTkLabel(strip, text="Aa", font=("", 10), text_color="gray").pack(pady=(8, 2))
+
+        sizes = [("A+", 24), ("A", 18), ("A−", 12)]
+        self._font_btns = {}
+        for label, size in sizes:
+            btn = ctk.CTkButton(
+                strip, text=label, width=30, height=28, font=("", 10),
+                fg_color="#1f6aa5" if size == 18 else "transparent",
+                hover_color=("gray75", "gray35"),
+                command=lambda s=size: self._set_jira_font(s),
+            )
+            btn.pack(pady=2)
+            self._font_btns[size] = btn
+
+    def _set_jira_font(self, size: int) -> None:
+        """Change Jira summary font size and re-render current tasks."""
+        self._jira_font_size = size
+        # Update button highlight
+        for s, btn in self._font_btns.items():
+            btn.configure(fg_color="#1f6aa5" if s == size else "transparent")
+        # Re-render if there are results cached
+        if "open" in self._jira_fetch_results or "closed" in self._jira_fetch_results:
+            self._render_jira_issues(
+                self._jira_fetch_results.get("open", []),
+                self._jira_fetch_results.get("closed", []),
+            )
 
     def _build_col2(self) -> None:
         """Column 2: Jira Open Tasks."""
@@ -869,7 +904,7 @@ class MeetingTab(ctk.CTkFrame):
             summary_lbl = ctk.CTkLabel(
                 card,
                 text=issue["summary"],
-                font=("", 18),
+                font=("", self._jira_font_size),
                 anchor="w",
                 justify="left",
                 wraplength=400,
@@ -940,7 +975,7 @@ class MeetingTab(ctk.CTkFrame):
                 summary_lbl = ctk.CTkLabel(
                     card,
                     text=issue["summary"],
-                    font=("", 18),
+                    font=("", self._jira_font_size),
                     anchor="w",
                     justify="left",
                     wraplength=400,
