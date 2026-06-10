@@ -290,15 +290,19 @@ def fetch_sprint_info(
                 f"/rest/agile/1.0/board/{board_id}/sprint",
                 params={"state": "active"},
             )
+            import re as _re
             sprints = []
             for s in data.get("values", []):
-                sprints.append({
-                    "name":      s.get("name", ""),
-                    "state":     s.get("state", ""),
-                    "startDate": s.get("startDate", "")[:10] if s.get("startDate") else "—",
-                    "endDate":   s.get("endDate", "")[:10] if s.get("endDate") else "—",
-                    "goal":      s.get("goal", "") or "—",
-                })
+                name = s.get("name", "")
+                # Only include RBI team sprints matching pattern "R<n> - RBI Sprint"
+                if _re.match(r"R\d+\s*-\s*RBI Sprint", name):
+                    sprints.append({
+                        "name":      name,
+                        "state":     s.get("state", ""),
+                        "startDate": s.get("startDate", "")[:10] if s.get("startDate") else "—",
+                        "endDate":   s.get("endDate", "")[:10] if s.get("endDate") else "—",
+                        "goal":      s.get("goal", "") or "—",
+                    })
             on_done(sprints)
         except Exception as e:
             on_error(str(e))

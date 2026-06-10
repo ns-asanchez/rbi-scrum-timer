@@ -779,7 +779,7 @@ class MeetingTab(ctk.CTkFrame):
         done_var = ctk.BooleanVar(master=root, value=False)
 
         backdrop = ctk.CTkFrame(root, corner_radius=0)
-        backdrop.configure(fg_color="#00000099")
+        backdrop.configure(fg_color="#1a1a1a")
         backdrop.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         card_h = min(100 + len(sprints) * 130, 500)
