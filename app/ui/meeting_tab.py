@@ -911,13 +911,17 @@ class MeetingTab(ctk.CTkFrame):
                     ),
                 ).pack(side="left", padx=(0, 8))
 
-                # Status badge (right side, same order as open tasks)
+                # Status badge — Cerrada/Closed/Done=green, Resuelta/Resolved=orange
+                _badge_color = {
+                    "Resolved": "#e67e22", "Resuelta": "#e67e22",
+                    "Done": "#27ae60", "Cerrada": "#27ae60", "Closed": "#27ae60",
+                }.get(issue["status"], "#27ae60")
                 ctk.CTkLabel(
                     top,
                     text=f" {issue['status']} ",
                     font=("", 10),
                     text_color="white",
-                    fg_color="#27ae60",
+                    fg_color=_badge_color,
                     corner_radius=4,
                 ).pack(side="right", padx=(4, 0))
 
@@ -935,7 +939,7 @@ class MeetingTab(ctk.CTkFrame):
                 summary_lbl = ctk.CTkLabel(
                     card,
                     text=issue["summary"],
-                    font=("", 12),
+                    font=("", 14, "bold"),
                     anchor="w",
                     justify="left",
                     wraplength=400,
