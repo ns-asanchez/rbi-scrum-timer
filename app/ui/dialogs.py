@@ -8,6 +8,7 @@ def _base(parent, title: str, message: str, icon: str) -> ctk.CTkToplevel:
     d = ctk.CTkToplevel(parent)
     d.title(title)
     d.resizable(False, False)
+    d.transient(parent.winfo_toplevel())
     d.grab_set()
     d.lift()
     d.focus_force()
