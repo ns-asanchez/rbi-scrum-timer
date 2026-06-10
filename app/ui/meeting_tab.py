@@ -750,14 +750,14 @@ class MeetingTab(ctk.CTkFrame):
                         "Set a Board Filter URL in Settings first.")
             return
 
-        self._btn_sprint_info.configure(state="disabled", text="⏳")
+        self._btn_sprint_info.configure(state="disabled", text="⏳  Loading…")
 
         def _on_done(sprints):
             self.after(0, lambda: self._render_sprint_info(sprints))
 
         def _on_error(err):
             self.after(0, lambda: (
-                self._btn_sprint_info.configure(state="normal", text="ℹ️"),
+                self._btn_sprint_info.configure(state="normal", text="🏃  Sprint Info"),
                 __import__("app.ui.dialogs", fromlist=["showerror"]).showerror(
                     self, "Sprint info error", err[:120]
                 )
@@ -767,7 +767,7 @@ class MeetingTab(ctk.CTkFrame):
 
     def _render_sprint_info(self, sprints: list[dict]) -> None:
         """Show sprint info as a transient popup (stays above main window)."""
-        self._btn_sprint_info.configure(state="normal", text="ℹ️")
+        self._btn_sprint_info.configure(state="normal", text="🏃  Sprint Info")
         if not sprints:
             from app.ui.dialogs import showinfo
             showinfo(self, "Sprint info", "No active RBI sprint found for this board.")
