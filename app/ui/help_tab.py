@@ -20,7 +20,7 @@ HELP_CONTENT = [
             ),
             (
                 "Next",
-                "Advances to the next participant and automatically loads their Jira tasks (Open + Closed columns). If paused, resumes the timer.",
+                "Advances to the next participant and automatically loads their Jira tasks (Active + Done columns). If paused, resumes the timer.",
             ),
             ("Stop", "Ends the meeting early and marks remaining participants as done. Unlocks Save Session."),
             (
@@ -30,6 +30,10 @@ HELP_CONTENT = [
             (
                 "Save Session",
                 "Saves the session to the local database (visible in Stats). Only available once per meeting — the button is disabled after saving to prevent duplicates.",
+            ),
+            (
+                "🏃  Sprint Info",
+                "Opens a popup with the current RBI sprint details: name, dates, days remaining, sprint goal (clickable if it's a URL), and issue stats — Done / In Progress / To Do / Story Points done.",
             ),
             (
                 "Status dot ●",
@@ -44,16 +48,16 @@ HELP_CONTENT = [
                 "Shows all participants in random order with their timers. Click any row — including already-done participants — to load their Jira tasks in the right columns. Useful when someone arrives late.",
             ),
             (
-                "🔵 Open Tasks (col 3)",
+                "⚡ Active (col 3)",
                 "Active sprint issues assigned to the current (or clicked) speaker. Click a ticket key to open it in Jira. Colour-coded by status: blue=In Progress, purple=In Review, orange=More Info, red=Blocked, grey=Open.",
             ),
             (
-                "✅ Closed Tasks (col 4)",
+                "✅ Done (col 4)",
                 "Issues completed this sprint by the same speaker. Green badge = Cerrada/Closed/Done, orange badge = Resuelta/Resolved.",
             ),
             (
                 "Font size A− / A / A+",
-                "Three font size presets (12 / 18 / 24) in the Closed Tasks header. Applies to task description text in both columns. The active size is highlighted in blue.",
+                "Three font size presets (12 / 18 / 24) in the Done column header. Applies to ticket key and summary text in both columns. The active size is highlighted in blue.",
             ),
         ],
     ),
