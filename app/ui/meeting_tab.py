@@ -266,28 +266,32 @@ class MeetingTab(ctk.CTkFrame):
             )
 
     def _build_col2(self) -> None:
-        """Column 2: Jira Open Tasks."""
+        """Column 2: Jira Active Tasks — title + sprint info button in header."""
         jira_open = ctk.CTkFrame(self)
         jira_open.grid(row=0, column=2, padx=4, pady=10, sticky="nsew")
         jira_open.columnconfigure(0, weight=1)
         jira_open.rowconfigure(1, weight=1)
 
+        # Header row: title left, ℹ️ right
+        header_row2 = ctk.CTkFrame(jira_open, fg_color="transparent")
+        header_row2.grid(row=0, column=0, padx=8, pady=(12, 4), sticky="ew")
+        header_row2.columnconfigure(0, weight=1)
+
         self._jira_header = ctk.CTkLabel(
-            jira_open, text="⚡  Active", font=("", 13, "bold")
+            header_row2, text="⚡  Active", font=("", 13, "bold")
         )
-        self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
+        self._jira_header.grid(row=0, column=0, sticky="w")
 
-        # font_btns dict initialised here so col3 can populate it
-        self._font_btns = {}
-
-        # Sprint info button in header
         self._btn_sprint_info = ctk.CTkButton(
-            jira_open, text="ℹ️", width=28, height=28,
+            header_row2, text="ℹ️", width=32, height=26,
             fg_color="transparent", hover_color=("gray80", "gray30"),
             font=("", 14),
             command=self._show_sprint_info,
         )
-        self._btn_sprint_info.grid(row=0, column=0, padx=(0, 10), pady=(12, 4), sticky="e")
+        self._btn_sprint_info.grid(row=0, column=1, sticky="e", padx=(4, 0))
+
+        # font_btns dict initialised here so col3 can populate it
+        self._font_btns = {}
 
         self._list_jira = ctk.CTkScrollableFrame(jira_open)
         self._list_jira.grid(row=1, column=0, padx=8, pady=(0, 12), sticky="nsew")
