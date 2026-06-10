@@ -252,27 +252,6 @@ class MeetingTab(ctk.CTkFrame):
         self._list_jefotes.grid(row=3, column=0, padx=8, pady=(0, 12), sticky="ew")
         self._list_jefotes.columnconfigure(0, weight=1)
 
-    def _build_font_sizer(self) -> None:
-        """Floating font-size strip overlaid on the border between col1 and col2."""
-        strip = ctk.CTkFrame(self, fg_color=("gray88", "gray20"), corner_radius=8, width=34)
-        strip.grid(row=0, column=1, padx=0, pady=(0, 0), sticky="e")
-        strip.grid_propagate(False)
-        strip.configure(width=36)
-
-        ctk.CTkLabel(strip, text="Aa", font=("", 10), text_color="gray").pack(pady=(8, 2))
-
-        sizes = [("A+", 24), ("A", 18), ("A−", 12)]
-        self._font_btns = {}
-        for label, size in sizes:
-            btn = ctk.CTkButton(
-                strip, text=label, width=30, height=28, font=("", 10),
-                fg_color="#1f6aa5" if size == 18 else "transparent",
-                hover_color=("gray75", "gray35"),
-                command=lambda s=size: self._set_jira_font(s),
-            )
-            btn.pack(pady=2)
-            self._font_btns[size] = btn
-
     def _set_jira_font(self, size: int) -> None:
         """Change Jira summary font size and re-render current tasks."""
         self._jira_font_size = size
@@ -287,16 +266,35 @@ class MeetingTab(ctk.CTkFrame):
             )
 
     def _build_col2(self) -> None:
-        """Column 2: Jira Open Tasks."""
+        """Column 2: Jira Open Tasks with font sizer in header."""
         jira_open = ctk.CTkFrame(self)
         jira_open.grid(row=0, column=2, padx=4, pady=10, sticky="nsew")
         jira_open.columnconfigure(0, weight=1)
         jira_open.rowconfigure(1, weight=1)
 
+        # Header row: title + font sizer buttons
+        header_row = ctk.CTkFrame(jira_open, fg_color="transparent")
+        header_row.grid(row=0, column=0, padx=8, pady=(12, 4), sticky="ew")
+        header_row.columnconfigure(0, weight=1)
+
         self._jira_header = ctk.CTkLabel(
-            jira_open, text="🔵  Open Tasks", font=("", 13, "bold")
+            header_row, text="🔵  Open Tasks", font=("", 13, "bold")
         )
-        self._jira_header.grid(row=0, column=0, padx=12, pady=(12, 4), sticky="w")
+        self._jira_header.grid(row=0, column=0, sticky="w")
+
+        # Font sizer: A- / A / A+
+        sizer = ctk.CTkFrame(header_row, fg_color="transparent")
+        sizer.grid(row=0, column=1, sticky="e")
+        self._font_btns = {}
+        for label, size in [("A−", 12), ("A", 18), ("A+", 24)]:
+            btn = ctk.CTkButton(
+                sizer, text=label, width=32, height=24, font=("", 10),
+                fg_color="#1f6aa5" if size == 18 else "transparent",
+                hover_color=("gray75", "gray35"),
+                command=lambda s=size: self._set_jira_font(s),
+            )
+            btn.pack(side="left", padx=2)
+            self._font_btns[size] = btn
 
         self._list_jira = ctk.CTkScrollableFrame(jira_open)
         self._list_jira.grid(row=1, column=0, padx=8, pady=(0, 12), sticky="nsew")
