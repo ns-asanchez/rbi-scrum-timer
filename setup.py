@@ -26,7 +26,7 @@ OPTIONS = {
         "app",
     ],
     "includes": ["tkinter", "_tkinter"],
-    "excludes": ["test", "unittest", "email"],
+    "excludes": [],
 }
 
 setup(
