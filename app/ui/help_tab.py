@@ -49,15 +49,27 @@ HELP_CONTENT = [
             ),
             (
                 "⚡ Active (col 3)",
-                "Active sprint issues assigned to the current (or clicked) speaker. Click a ticket key to open it in Jira. Colour-coded by status: blue=In Progress, purple=In Review, orange=More Info, red=Blocked, grey=Open.",
+                "Active sprint issues assigned to the current (or clicked) speaker. Each card shows: issue type badge (🟢 Story / 🔴 Bug / 🔵 Task / 🟣 Epic), ticket key with board column (e.g. ENG-1234 · Code Review), SP, status badge, description, QA assignee (red), and board column. Click the key to open in Jira.",
             ),
             (
                 "✅ Done (col 4)",
-                "Issues completed this sprint by the same speaker. Green badge = Cerrada/Closed/Done, orange badge = Resuelta/Resolved.",
+                "Issues completed this sprint. Same card format as Active. QA shown in gray. Issue type badges use the same colour scheme. Green badge = Cerrada/Closed/Done, orange badge = Resuelta/Resolved.",
             ),
             (
                 "Font size A− / A / A+",
-                "Three font size presets (12 / 18 / 24) in the Done column header. Applies to ticket key and summary text in both columns. The active size is highlighted in blue.",
+                "Three font size presets (12 / 18 / 24) in the Done column header. Applies to ticket key, summary, and QA text in both columns. The active size is highlighted in blue.",
+            ),
+            (
+                "Issue type badges",
+                "Colour-coded badge on every card: 🟢 Story (green) · 🔴 Bug (red) · 🔵 Task (blue) · 🟣 Epic (purple) · ⬜ Subtask (grey).",
+            ),
+            (
+                "🧪 QA field",
+                "Shows the QA assignee from the Jira QA field. Red in Active (draw attention), gray in Done (informational). Shows '🧪 No QA' if the field is empty.",
+            ),
+            (
+                "Board column",
+                "The board column (To Do / In Progress / Blocked / Code Review / Ready to test / Closed) is shown next to the ticket key — derived from the issue status at fetch time.",
             ),
         ],
     ),
