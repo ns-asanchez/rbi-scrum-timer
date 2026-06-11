@@ -89,10 +89,10 @@ class MeetingTab(ctk.CTkFrame):
     def _build_ui(self) -> None:
         """Build the 4-column layout."""
         # Configure grid: 4 columns with weights, 1 row
-        self.columnconfigure(0, weight=3)  # timer + controls (fixed feel)
-        self.columnconfigure(1, weight=3)  # attendees (+10%)
-        self.columnconfigure(2, weight=7)  # jira open  (doubled vs attendees)
-        self.columnconfigure(3, weight=7)  # jira closed (doubled)
+        self.columnconfigure(0, weight=3)                        # timer + controls
+        self.columnconfigure(1, weight=3)                        # attendees
+        self.columnconfigure(2, weight=7, uniform="jira_cols")   # jira open  — scale equally
+        self.columnconfigure(3, weight=7, uniform="jira_cols")   # jira closed — scale equally
         self.rowconfigure(0, weight=1)
 
         # ── Col 0: Timer + Speaker + Controls ────────────────────────────────
