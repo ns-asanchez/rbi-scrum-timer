@@ -9,6 +9,7 @@ import base64
 import json
 import os
 import re
+import sys
 import threading
 import urllib.parse
 import urllib.request
@@ -30,7 +31,18 @@ BOARD_COLUMN_MAP = {
 }
 
 JIRA_BASE = "https://netskope.atlassian.net"
-AVATAR_CACHE = Path(__file__).parent.parent / "data" / "avatars"
+def _get_avatar_cache() -> Path:
+    """Return avatars dir — ~/Library/Application Support when running as .app."""
+    if getattr(sys, "frozen", False):
+        base = Path.home() / "Library" / "Application Support" / "RBI Scrum Timer"
+    else:
+        base = Path(__file__).parent.parent / "data"
+    p = base / "avatars"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+AVATAR_CACHE = _get_avatar_cache()
 
 BOARD_FILTER = (
     'project in (Engineering, RBI, "Quality Engineering", "Core QE") '

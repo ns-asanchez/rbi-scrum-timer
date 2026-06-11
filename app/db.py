@@ -2,11 +2,24 @@
 
 import random
 import sqlite3
+import sys
 from pathlib import Path
 
 from app.models import FOOD_ICONS, MeetingConfig, Participant, SessionRecord
 
-DB_PATH = Path(__file__).parent.parent / "data" / "scrum.db"
+def _get_db_path() -> Path:
+    """Return DB path — ~/Library/Application Support when running as .app, else data/ locally."""
+    if getattr(sys, "frozen", False):
+        # Running as py2app bundle
+        app_support = Path.home() / "Library" / "Application Support" / "RBI Scrum Timer"
+    else:
+        # Running from source
+        app_support = Path(__file__).parent.parent / "data"
+    app_support.mkdir(parents=True, exist_ok=True)
+    return app_support / "scrum.db"
+
+
+DB_PATH = _get_db_path()
 
 
 def _connect() -> sqlite3.Connection:
@@ -17,7 +30,7 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
-def init_db() -> None:
+def init_db() -> None:  # noqa: C901
     """Create all tables and run migrations (food_icon, bell settings, Jira IDs, etc.)."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _connect() as conn:
