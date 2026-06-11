@@ -16,6 +16,19 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
+
+# Board column map (board 14955)
+BOARD_COLUMN_MAP = {
+    "10945": "To Do", "1": "To Do", "10869": "To Do", "11647": "To Do", "11141": "To Do",
+    "11142": "In Progress", "4": "In Progress", "3": "In Progress", "18682": "In Progress",
+    "10804": "Blocked", "14478": "Blocked", "18683": "Blocked",
+    "11648": "Code Review", "10958": "Code Review", "10500": "Code Review",
+    "11214": "Ready to test", "18211": "Ready to test", "5": "Ready to test",
+    "10200": "Ready to test", "12045": "Ready to test",
+    "11496": "Closed", "6": "Closed", "10018": "Closed", "11143": "Closed",
+    "11670": "Closed", "10006": "Closed", "11495": "Closed",
+}
+
 JIRA_BASE = "https://netskope.atlassian.net"
 AVATAR_CACHE = Path(__file__).parent.parent / "data" / "avatars"
 
@@ -256,13 +269,17 @@ def fetch_closed_issues_for_participant(
             issues = []
             for item in data.get("issues", []):
                 f = item.get("fields", {})
+                status_id = str(f.get("status", {}).get("id", ""))
+                qa_field = f.get("customfield_10200") or {}
                 issues.append(
                     {
-                        "key": item["key"],
+                        "key":    item["key"],
                         "summary": f.get("summary", ""),
                         "status": f.get("status", {}).get("name", "?"),
                         "points": f.get("customfield_10004"),
-                        "url": f"{JIRA_BASE}/browse/{item['key']}",
+                        "url":    f"{JIRA_BASE}/browse/{item['key']}",
+                        "qa":     qa_field.get("displayName", "") if qa_field else "",
+                        "column": BOARD_COLUMN_MAP.get(status_id, ""),
                     }
                 )
             on_done(issues)
@@ -421,13 +438,17 @@ def fetch_issues_for_participant(
             issues = []
             for item in data.get("issues", []):
                 f = item.get("fields", {})
+                status_id = str(f.get("status", {}).get("id", ""))
+                qa_field = f.get("customfield_10200") or {}
                 issues.append(
                     {
-                        "key": item["key"],
+                        "key":    item["key"],
                         "summary": f.get("summary", ""),
                         "status": f.get("status", {}).get("name", "?"),
                         "points": f.get("customfield_10004"),
-                        "url": f"{JIRA_BASE}/browse/{item['key']}",
+                        "url":    f"{JIRA_BASE}/browse/{item['key']}",
+                        "qa":     qa_field.get("displayName", "") if qa_field else "",
+                        "column": BOARD_COLUMN_MAP.get(status_id, ""),
                     }
                 )
             on_done(issues)

@@ -1016,11 +1016,13 @@ class MeetingTab(ctk.CTkFrame):
             top.pack(fill="x", padx=8, pady=(8, 2))
 
             # Clickable key
+            col_label = issue.get("column", "")
+            key_text = f"{issue['key']}  ·  {col_label}" if col_label else issue["key"]
             key_btn = ctk.CTkButton(
                 top,
-                text=issue["key"],
+                text=key_text,
                 font=("", self._jira_font_size + 2, "bold"),
-                width=120,
+                width=160,
                 height=28,
                 fg_color="transparent",
                 text_color=("#1f6aa5", "#4a9ede"),
@@ -1095,11 +1097,13 @@ class MeetingTab(ctk.CTkFrame):
                 top.pack(fill="x", padx=8, pady=(8, 2))
 
                 # Key button
+                col_label_c = issue.get("column", "")
+                key_text_c = f"{issue['key']}  ·  {col_label_c}" if col_label_c else issue["key"]
                 ctk.CTkButton(
                     top,
-                    text=issue["key"],
+                    text=key_text_c,
                     font=("", self._jira_font_size + 2, "bold"),
-                    width=120,
+                    width=160,
                     height=28,
                     fg_color="transparent",
                     text_color=("gray50", "gray50"),
