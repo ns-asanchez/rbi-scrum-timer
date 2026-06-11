@@ -24,3 +24,7 @@ build/
 .vscode/
 *.swp
 *.swo
+
+# py2app build output
+dist/
+build/
