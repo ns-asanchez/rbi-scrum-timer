@@ -1144,13 +1144,22 @@ class MeetingTab(ctk.CTkFrame):
                     wraplength=400,
                     text_color="gray",
                 )
-                summary_lbl.pack(fill="x", padx=10, pady=(2, 8), anchor="w")
+                summary_lbl.pack(fill="x", padx=10, pady=(2, 4), anchor="w")
                 card.bind(
                     "<Configure>",
                     lambda e, lbl=summary_lbl: lbl.configure(
                         wraplength=max(100, e.width - 24)
                     ),
                 )
+                qa_name = issue.get("qa", "") or ""
+                qa_text = f"🧪 QA: {qa_name}" if qa_name else "🧪 No QA"
+                ctk.CTkLabel(
+                    card,
+                    text=qa_text,
+                    font=("", self._jira_font_size),
+                    text_color="gray",
+                    anchor="w",
+                ).pack(fill="x", padx=10, pady=(0, 8), anchor="w")
         else:
             ctk.CTkLabel(
                 self._list_jira_closed,
