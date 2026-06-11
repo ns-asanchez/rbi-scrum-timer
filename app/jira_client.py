@@ -249,7 +249,7 @@ def fetch_closed_issues_for_participant(
                 body={
                     "jql": jql,
                     "maxResults": 20,
-                    "fields": ["summary", "status", "customfield_10004"],
+                    "fields": ["summary", "status", "customfield_10004", "customfield_10200"],
                 },
             )
 
@@ -414,7 +414,7 @@ def fetch_issues_for_participant(
                 body={
                     "jql": jql,
                     "maxResults": 30,
-                    "fields": ["summary", "status", "customfield_10004", "issuetype"],
+                    "fields": ["summary", "status", "customfield_10004", "issuetype", "customfield_10200"],
                 },
             )
 
