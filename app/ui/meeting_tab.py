@@ -1096,6 +1096,21 @@ class MeetingTab(ctk.CTkFrame):
                 top = ctk.CTkFrame(card, fg_color="transparent")
                 top.pack(fill="x", padx=8, pady=(8, 2))
 
+                # Issue type badge
+                ISSUE_TYPE_COLORS_C = {
+                    "Story": ("#1f6aa5", "Story"),   "Historia": ("#1f6aa5", "Story"),
+                    "Bug":   ("#c0392b", "Bug"),      "Error":    ("#c0392b", "Bug"),
+                    "Task":  ("#27ae60", "Task"),     "Tarea":    ("#27ae60", "Task"),
+                    "Epic":  ("#8e44ad", "Epic"),
+                    "Subtask": ("#555555", "Sub"),    "Subtarea": ("#555555", "Sub"),
+                }
+                itype_c = issue.get("issuetype", "")
+                itype_color_c, itype_label_c = ISSUE_TYPE_COLORS_C.get(itype_c, ("#555555", itype_c[:5] or "?"))
+                ctk.CTkLabel(
+                    top, text=f" {itype_label_c} ", font=("", 10, "bold"),
+                    text_color="white", fg_color=itype_color_c, corner_radius=4,
+                ).pack(side="left", padx=(0, 6))
+
                 # Key button
                 col_label_c = issue.get("column", "")
                 key_text_c = f"{issue['key']}  ·  {col_label_c}" if col_label_c else issue["key"]

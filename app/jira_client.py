@@ -262,7 +262,7 @@ def fetch_closed_issues_for_participant(
                 body={
                     "jql": jql,
                     "maxResults": 20,
-                    "fields": ["summary", "status", "customfield_10004", "customfield_10200"],
+                    "fields": ["summary", "status", "customfield_10004", "customfield_10200", "issuetype"],
                 },
             )
 
@@ -278,8 +278,9 @@ def fetch_closed_issues_for_participant(
                         "status": f.get("status", {}).get("name", "?"),
                         "points": f.get("customfield_10004"),
                         "url":    f"{JIRA_BASE}/browse/{item['key']}",
-                        "qa":     qa_field.get("displayName", "") if qa_field else "",
-                        "column": BOARD_COLUMN_MAP.get(status_id, ""),
+                        "qa":         qa_field.get("displayName", "") if qa_field else "",
+                        "column":     BOARD_COLUMN_MAP.get(status_id, ""),
+                        "issuetype":  f.get("issuetype", {}).get("name", ""),
                     }
                 )
             on_done(issues)
@@ -447,8 +448,9 @@ def fetch_issues_for_participant(
                         "status": f.get("status", {}).get("name", "?"),
                         "points": f.get("customfield_10004"),
                         "url":    f"{JIRA_BASE}/browse/{item['key']}",
-                        "qa":     qa_field.get("displayName", "") if qa_field else "",
-                        "column": BOARD_COLUMN_MAP.get(status_id, ""),
+                        "qa":         qa_field.get("displayName", "") if qa_field else "",
+                        "column":     BOARD_COLUMN_MAP.get(status_id, ""),
+                        "issuetype":  f.get("issuetype", {}).get("name", ""),
                     }
                 )
             on_done(issues)
