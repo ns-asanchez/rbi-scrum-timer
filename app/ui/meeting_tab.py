@@ -1003,6 +1003,22 @@ class MeetingTab(ctk.CTkFrame):
             "Resuelta": "#e67e22",
         }
 
+
+        ISSUE_TYPE_COLORS = {
+            "Story":   ("#27ae60", "Story"),   "Historia":  ("#27ae60", "Story"),
+            "Bug":     ("#c0392b", "Bug"),      "Error":     ("#c0392b", "Bug"),
+            "Task":    ("#1f6aa5", "Task"),     "Tarea":     ("#1f6aa5", "Task"),
+            "Epic":    ("#8e44ad", "Epic"),
+            "Subtask": ("#555555", "Sub"),      "Subtarea":  ("#555555", "Sub"),
+        }
+
+        def _type_badge(parent, itype):
+            color, label = ISSUE_TYPE_COLORS.get(itype, ("#555555", itype[:5] or "?"))
+            ctk.CTkLabel(
+                parent, text=f" {label} ", font=("", 10, "bold"),
+                text_color="white", fg_color=color, corner_radius=4,
+            ).pack(side="left", padx=(0, 6))
+
         # ── Open issues ─────────────────────────────────────────────────────
         for issue in issues:
             card = ctk.CTkFrame(
@@ -1015,7 +1031,8 @@ class MeetingTab(ctk.CTkFrame):
             top = ctk.CTkFrame(card, fg_color="transparent")
             top.pack(fill="x", padx=8, pady=(8, 2))
 
-            # Clickable key
+            # Issue type badge + key
+            _type_badge(top, issue.get("issuetype", ""))
             col_label = issue.get("column", "")
             key_text = f"{issue['key']}  ·  {col_label}" if col_label else issue["key"]
             key_btn = ctk.CTkButton(
@@ -1097,19 +1114,7 @@ class MeetingTab(ctk.CTkFrame):
                 top.pack(fill="x", padx=8, pady=(8, 2))
 
                 # Issue type badge
-                ISSUE_TYPE_COLORS_C = {
-                    "Story": ("#1f6aa5", "Story"),   "Historia": ("#1f6aa5", "Story"),
-                    "Bug":   ("#c0392b", "Bug"),      "Error":    ("#c0392b", "Bug"),
-                    "Task":  ("#27ae60", "Task"),     "Tarea":    ("#27ae60", "Task"),
-                    "Epic":  ("#8e44ad", "Epic"),
-                    "Subtask": ("#555555", "Sub"),    "Subtarea": ("#555555", "Sub"),
-                }
-                itype_c = issue.get("issuetype", "")
-                itype_color_c, itype_label_c = ISSUE_TYPE_COLORS_C.get(itype_c, ("#555555", itype_c[:5] or "?"))
-                ctk.CTkLabel(
-                    top, text=f" {itype_label_c} ", font=("", 10, "bold"),
-                    text_color="white", fg_color=itype_color_c, corner_radius=4,
-                ).pack(side="left", padx=(0, 6))
+                _type_badge(top, issue.get("issuetype", ""))
 
                 # Key button
                 col_label_c = issue.get("column", "")
