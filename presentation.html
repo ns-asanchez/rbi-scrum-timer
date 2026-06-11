@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBI Scrum Timer — AI-Assisted Development</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" />
+  <style>
+    :root {
+      --ns-blue:       #0095C4;
+      --ns-blue-dark:  #00749E;
+      --ns-accent:     #0066E1;
+      --ns-light:      #E0E7EC;
+      --ns-dark:       #2a2a2a;
+      --ns-gray:       #3A3E43;
+      --ns-bg:         #F8F8F8;
+    }
+
+    .reveal { font-family: 'Segoe UI', Arial, sans-serif; }
+
+    .reveal h1, .reveal h2, .reveal h3 {
+      color: var(--ns-blue-dark);
+      text-transform: none;
+      font-weight: 700;
+    }
+
+    .reveal h1 { font-size: 2em; }
+    .reveal h2 { font-size: 1.4em; border-bottom: 3px solid var(--ns-blue); padding-bottom: 8px; }
+    .reveal h3 { font-size: 1.1em; color: var(--ns-accent); }
+
+    .reveal .slides section {
+      text-align: left;
+      padding: 10px 40px;
+    }
+
+    .reveal ul { margin-left: 1em; }
+    .reveal ul li { margin-bottom: 0.5em; font-size: 0.82em; color: var(--ns-dark); }
+    .reveal ul li strong { color: var(--ns-blue-dark); }
+
+    /* Title slide */
+    .title-slide { text-align: center !important; }
+    .title-slide h1 { color: var(--ns-blue); font-size: 1.8em; }
+    .title-slide .subtitle { color: var(--ns-blue-dark); font-size: 1em; margin-top: 10px; }
+    .title-slide .meta { margin-top: 30px; font-size: 0.75em; color: var(--ns-gray); }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      background: var(--ns-blue);
+      color: white;
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-size: 0.7em;
+      font-weight: bold;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .badge.green  { background: #27ae60; }
+    .badge.orange { background: #e67e22; }
+    .badge.red    { background: #c0392b; }
+    .badge.purple { background: #8e44ad; }
+    .badge.gray   { background: #7f8c8d; }
+
+    /* Highlight box */
+    .highlight-box {
+      background: var(--ns-light);
+      border-left: 5px solid var(--ns-blue);
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-size: 0.78em;
+      margin: 10px 0;
+      color: var(--ns-dark);
+    }
+    .highlight-box.green  { border-color: #27ae60; background: #eafaf1; }
+    .highlight-box.orange { border-color: #e67e22; background: #fef9e7; }
+    .highlight-box.red    { border-color: #c0392b; background: #fdedec; }
+
+    /* Two columns */
+    .cols { display: flex; gap: 20px; }
+    .col  { flex: 1; }
+
+    /* Footer */
+    .reveal .slide-number { color: var(--ns-blue-dark); font-size: 0.7em; }
+
+    /* Netskope logo text */
+    .ns-logo {
+      font-weight: 900;
+      color: var(--ns-blue);
+      font-size: 1.1em;
+      letter-spacing: -1px;
+    }
+
+    /* Code inline */
+    .reveal code {
+      background: #e8f4f8;
+      color: var(--ns-blue-dark);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+
+    /* Progress bar */
+    .reveal .progress { background: var(--ns-light); }
+    .reveal .progress span { background: var(--ns-blue); }
+
+    /* Controls */
+    .reveal .controls button { color: var(--ns-blue); }
+
+    .reveal table { font-size: 0.72em; width: 100%; }
+    .reveal table th { background: var(--ns-blue); color: white; padding: 6px 10px; }
+    .reveal table td { padding: 5px 10px; border-bottom: 1px solid #dde; }
+    .reveal table tr:nth-child(even) td { background: var(--ns-light); }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ─── SLIDE 1: TITLE ─────────────────────────────────────────── -->
+<section class="title-slide">
+  <div style="margin-bottom:20px; font-size:2.5em;">🏃</div>
+  <h1>RBI Scrum Timer</h1>
+  <div class="subtitle">AI-Assisted Development — A Case Study</div>
+  <div class="meta">
+    <strong>Alex Sanchez</strong> · SDET, RBI Team @ <span class="ns-logo">Netskope</span><br/>
+    Built with <strong>Claude Code</strong> (Anthropic) on AWS Bedrock<br/>
+    Python · customtkinter · SQLite · Jira API · macOS<br/>
+    <em>~6 hours · ~4,000 lines of code · $20–25 total cost</em>
+  </div>
+</section>
+
+<!-- ─── SLIDE 2: AGENDA ────────────────────────────────────────── -->
+<section>
+  <h2>Agenda</h2>
+  <ul>
+    <li>🖥️ <strong>Local Claude Setup</strong> — SuperClaude architecture & repositories</li>
+    <li>🎯 <strong>How the need was detected</strong></li>
+    <li>⚙️ <strong>The process</strong> — Need → Dev → Quality → Lessons</li>
+    <li>⚠️ <strong>Limitations</strong> — Process & interaction level</li>
+    <li>🤔 <strong>What I would have done differently</strong> — Claude's honest reflection</li>
+    <li>✅ <strong>Is this viable for Netskope?</strong></li>
+    <li>📋 <strong>Spec-driven frameworks</strong> — aispec.org / Augment Code</li>
+    <li>💡 <strong>Conclusion</strong></li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 3: SETUP ─────────────────────────────────────────── -->
+<section>
+  <h2>🖥️ Local Claude Setup → Repositories</h2>
+  <ul>
+    <li>Claude Code CLI on <strong>AWS Bedrock</strong> — no direct Anthropic API cost, integrated with team AWS profile</li>
+    <li>Central <code>CLAUDE.md</code> as global index: <strong>5 repos, 20+ skills</strong>, team rules, label conventions</li>
+    <li>Skills distributed by domain — Jira ops, PR review, oncall, infra — invoked with <code>/skill-name</code> from anywhere</li>
+    <li>Persistent <strong>memory system</strong> (user / project / feedback) — Claude remembers decisions & preferences across sessions</li>
+    <li>Startup hook syncs all repos; credentials auto-loaded from <code>~/.zshrc</code> (Atlassian, Slack, OpsGenie, AWS)</li>
+  </ul>
+  <div class="highlight-box green">
+    <strong>Result:</strong> Claude enters each session briefed like a team member — not a blank slate
+  </div>
+</section>
+
+<!-- ─── SLIDE 4: REPOS TABLE ──────────────────────────────────── -->
+<section>
+  <h2>🖥️ The Five Repositories</h2>
+  <table>
+    <tr><th>Repository</th><th>Key Skills</th><th>Purpose</th></tr>
+    <tr><td><code>claude-skills</code></td><td>jira, xray-triage, confluence</td><td>Core Atlassian & security ops</td></tr>
+    <tr><td><code>rbi-ai-gnition-lab</code></td><td>jira-create, synapser, sonarqube</td><td>RBI team automation & PR review</td></tr>
+    <tr><td><code>rbi-devops-ai</code></td><td>oncall, grafana-analyzer</td><td>Oncall workflows & infra</td></tr>
+    <tr><td><code>pylark-webui-libs</code></td><td>—</td><td>Selenium/Playwright automation</td></tr>
+    <tr><td><code>webui-ng-api-libs</code></td><td>—</td><td>Netskope WebUI v2 API client</td></tr>
+  </table>
+  <div class="highlight-box" style="margin-top:14px">
+    Each repo owns a domain. Skills are reusable "agents" Claude invokes on demand.
+  </div>
+</section>
+
+<!-- ─── SLIDE 5: NEED ──────────────────────────────────────────── -->
+<section>
+  <h2>🎯 How the Need Was Detected</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>The Pain</h3>
+      <ul>
+        <li>No time control — someone always overran</li>
+        <li>Checking tasks required switching to Jira, breaking flow</li>
+        <li>No speaking time history or trends</li>
+        <li>Existing solution: phone timer + Jira on a 2nd screen</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>The Outcome</h3>
+      <ul>
+        <li>Single macOS app: timer + live Jira context</li>
+        <li>Sprint tasks per speaker (Active + Done)</li>
+        <li>Session history with charts</li>
+        <li>Team member sync from Jira board</li>
+      </ul>
+    </div>
+  </div>
+  <div class="highlight-box orange">
+    <strong>Estimated effort without AI: ~40h · Delivered with AI: ~6h</strong>
+  </div>
+</section>
+
+<!-- ─── SLIDE 6: PROCESS ───────────────────────────────────────── -->
+<section>
+  <h2>⚙️ The Process</h2>
+  <p style="font-size:0.8em; color:var(--ns-blue-dark); font-weight:bold">Need → Use case → Development → Quality → Lessons learned</p>
+  <ul>
+    <li><strong>Need:</strong> one desktop tool combining timer + live Jira sprint context</li>
+    <li><strong>Use case:</strong> active speaker sees their sprint tasks; team sees who's talking and for how long</li>
+    <li><strong>Development:</strong> strictly iterative — timer → Jira → avatars → sprint info → QA fields → type badges, one commit per feature</li>
+    <li><strong>Quality:</strong> pylint 10/10, black + isort, docstrings on all methods, <code>.gitignore</code> for DB & credentials</li>
+    <li><strong>Interaction:</strong> Alex provided exact context (field IDs, screenshots, logs, DNS traces) → Claude implemented. Being specific = cost control. Every precise message replaced 3–5 exploratory iterations.</li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 7: LESSONS ───────────────────────────────────────── -->
+<section>
+  <h2>⚙️ Key Lessons Learned</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>Jira API</h3>
+      <ul>
+        <li>Custom field IDs are instance-specific</li>
+        <li><code>/search</code> → <code>/search/jql</code> (migration)</li>
+        <li>Tenant DNS uses ECS subnet routing</li>
+        <li><code>greenhopper</code> needed for sprint reports</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>SQLite / macOS / Tk</h3>
+      <ul>
+        <li>Design for migrations from day one</li>
+        <li><code>CTkImage</code> must be cached — reconfiguring causes crash</li>
+        <li>Tk9 scroll: unsigned 16-bit deltas, not standard</li>
+        <li><code>transient()</code> for dialogs on macOS</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SLIDE 8: LIMITATIONS ──────────────────────────────────── -->
+<section>
+  <h2>⚠️ Limitations — Process & Interaction</h2>
+  <ul>
+    <li><strong>Context compression:</strong> Long sessions compress early decisions — DB schema changes, layout weights can be lost mid-session</li>
+    <li><strong>No cross-session memory by default:</strong> Without CLAUDE.md + memory files, every session starts blank</li>
+    <li><strong>Precision is a cost driver:</strong> Vague inputs → exploratory loops. Exact IDs, logs, URLs → 1 iteration instead of 5</li>
+    <li><strong>UI iteration is expensive:</strong> implement → launch → screenshot → describe → fix. No headless UI testing available</li>
+    <li><strong>Sequential approval:</strong> Each file write needs human approval — latency for rapid UI work (mitigated via <code>settings.json</code>)</li>
+    <li><strong>No rollback awareness:</strong> Claude doesn't track git history — regression debugging was purely conversational</li>
+    <li><strong>Single-file context:</strong> Cross-file refactors need explicit instruction; no proactive architecture suggestions</li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 9: REFLECTION ───────────────────────────────────── -->
+<section>
+  <h2>🤔 What I Would Have Done Differently</h2>
+  <p style="font-size:0.75em; font-style:italic; color:var(--ns-gray)">Claude's honest reflection on what slowed us down</p>
+  <ul>
+    <li><strong>Scroll fix:</strong> macOS Tk9 unsigned 16-bit deltas — researched from scratch multiple times. A single upfront test would have solved it once.</li>
+    <li><strong>Dialog topmost:</strong> 4–5 iterations before finding <code>transient()</code>. Knowing the macOS constraint upfront = 1 iteration.</li>
+    <li><strong>Jira field IDs:</strong> Discovered <code>customfield_10004</code> only when <code>customfield_10016</code> returned empty. A 5-min field audit at the start saves multiple debug cycles.</li>
+    <li><strong>Layout breaks:</strong> Happened twice from editing without reading the full current file state. "Always read before edit" discipline would have prevented regressions.</li>
+  </ul>
+  <div class="highlight-box green">
+    <strong>Main lever:</strong> front-load specification — screen layout sketch, Jira field inventory, platform constraints checklist — before writing the first line of code.
+  </div>
+</section>
+
+<!-- ─── SLIDE 10: VIABLE? ─────────────────────────────────────── -->
+<section>
+  <h2>✅ Is This Viable for Netskope Feature Development?</h2>
+  <div class="cols">
+    <div class="col">
+      <h3><span class="badge green">YES</span> Works great for</h3>
+      <ul>
+        <li>Internal tooling & automation</li>
+        <li>QE scripts & log analysis</li>
+        <li>Ticket refinement & PR review</li>
+        <li>Greenfield tools with clear scope</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3><span class="badge orange">GUARDRAILS</span> Needs oversight for</h3>
+      <ul>
+        <li>Production code</li>
+        <li>Architecture decisions</li>
+        <li>Cross-team dependencies</li>
+        <li>Security-sensitive changes</li>
+      </ul>
+    </div>
+  </div>
+  <div class="highlight-box">
+    <strong>The real multiplier:</strong> not that Claude writes code faster — it eliminates context-switch cost. Alex stayed in flow; Claude handled implementation details. <strong>~6x productivity gain</strong> on greenfield internal tooling.
+  </div>
+</section>
+
+<!-- ─── SLIDE 11: KNOWLEDGE SOURCES ──────────────────────────── -->
+<section>
+  <h2>✅ Knowledge Sources That Work</h2>
+  <ul>
+    <li><strong>Confluence</strong> as context — architecture docs, team conventions, sprint pages briefed into the session</li>
+    <li><strong>Jira</strong> as spec — ticket description = feature requirements, AC = acceptance criteria</li>
+    <li><strong>GitHub repos</strong> as code reference — existing patterns, API clients, test helpers</li>
+    <li><strong>Logs & screenshots</strong> as debugging input — DNS traces, Jenkins output, UI screenshots</li>
+  </ul>
+  <div class="highlight-box green">
+    <strong>Brief Claude like a senior engineer joining the team</strong> — give the context you'd give a person. The quality of output is directly proportional to the quality of context.
+  </div>
+</section>
+
+<!-- ─── SLIDE 12: SPEC-DRIVEN ─────────────────────────────────── -->
+<section>
+  <h2>📋 Spec-Driven Frameworks</h2>
+  <p style="font-size:0.75em; color:var(--ns-gray)">aispec.org · Augment Code</p>
+  <div class="cols">
+    <div class="col">
+      <h3>What they offer</h3>
+      <ul>
+        <li><strong>aispec.org:</strong> PRD → TDD → implementation before any code</li>
+        <li><strong>Augment Code:</strong> codebase-awareness tooling for existing large repos</li>
+        <li>Reduce mid-development direction changes</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Honest verdict</h3>
+      <ul>
+        <li>For this project: <strong>conversational worked better</strong> — features were small, iterative, tight feedback loop</li>
+        <li>For a large Netskope production feature: <strong>spec-driven pays for itself</strong> in alignment</li>
+        <li>Value scales with feature size & team size</li>
+      </ul>
+    </div>
+  </div>
+  <div class="highlight-box orange">
+    Solo dev on internal tooling → overhead outweighs benefit.<br/>
+    Multi-engineer feature with stakeholders → spec reduces back-and-forth significantly.
+  </div>
+</section>
+
+<!-- ─── SLIDE 13: COST ─────────────────────────────────────────── -->
+<section>
+  <h2>💰 What Did It Cost?</h2>
+  <table>
+    <tr><th>Item</th><th>Value</th></tr>
+    <tr><td>Lines of code delivered</td><td>~4,000</td></tr>
+    <tr><td>Features shipped</td><td>30+ (timer, Jira, avatars, stats, settings, sprint info…)</td></tr>
+    <tr><td>Code quality</td><td>pylint 10/10 · black · isort · docstrings · git history</td></tr>
+    <tr><td>Development time</td><td>~6 hours (vs ~40h estimated)</td></tr>
+    <tr><td>Estimated tokens</td><td>~3–4M (input + output)</td></tr>
+    <tr><td>Estimated cost (Bedrock)</td><td><strong>~$20–25</strong></td></tr>
+  </table>
+  <div class="highlight-box green" style="margin-top:14px">
+    A production-quality internal tool, tested, documented, git-tagged, for the cost of a lunch.
+  </div>
+</section>
+
+<!-- ─── SLIDE 14: CONCLUSION ──────────────────────────────────── -->
+<section>
+  <h2>💡 Conclusion</h2>
+  <p style="font-size:0.85em; line-height:1.6; color:var(--ns-dark)">
+    AI pair programming is real — but it requires the same discipline as human pair programming:
+    <strong>clear communication, shared context, and defined responsibilities.</strong>
+  </p>
+  <p style="font-size:0.85em; line-height:1.6; color:var(--ns-dark)">
+    Claude is most effective when treated like a <strong>senior engineer on their first week</strong>: capable of executing at a high level, but dependent on you to provide domain knowledge, constraints, and judgment calls.
+  </p>
+  <div class="highlight-box green">
+    The RBI Scrum Timer went from idea to a polished, git-tagged desktop app in a single session.
+    The team has a tool that didn't exist before, at a fraction of the traditional cost —
+    and the process itself is a <strong>reusable playbook for AI-assisted development at Netskope</strong>.
+  </div>
+  <p style="text-align:center; margin-top:20px; font-size:0.8em; color:var(--ns-blue-dark)">
+    🔗 <strong>github.com/ns-asanchez/rbi-scrum-timer</strong>
+  </p>
+</section>
+
+<!-- ─── SLIDE 15: Q&A ──────────────────────────────────────────── -->
+<section class="title-slide">
+  <div style="font-size:3em; margin-bottom:20px">🙋</div>
+  <h1>Questions?</h1>
+  <div class="subtitle">Alex Sanchez · RBI Team @ <span class="ns-logo">Netskope</span></div>
+  <div class="meta" style="margin-top:30px">
+    <strong>Key takeaways:</strong><br/>
+    Precise context → lower cost · Front-load spec → fewer regressions<br/>
+    AI multiplies productivity, human judgment remains essential
+  </div>
+</section>
+
+</div><!-- .slides -->
+</div><!-- .reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    progress: true,
+    controls: true,
+    transition: 'slide',
+    transitionSpeed: 'fast',
+    width: 1100,
+    height: 700,
+    margin: 0.05,
+  });
+</script>
+</body>
+</html>
